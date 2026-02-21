@@ -1,0 +1,11 @@
+# Core AI and Database
+anthropic>=0.39.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# Web Interface
+streamlit>=1.31.0
+plotly>=5.18.0
+
+# Utilities
+python-dotenv>=1.0.0

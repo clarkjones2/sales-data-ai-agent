@@ -1,5 +1,4 @@
 __all__ = [
-    "Interval",
     "NaT",
     "NaTType",
     "OutOfBoundsDatetime",
@@ -7,6 +6,7 @@ __all__ = [
     "Timedelta",
     "Timestamp",
     "iNaT",
+    "Interval",
 ]
 
 

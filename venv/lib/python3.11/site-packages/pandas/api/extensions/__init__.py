@@ -21,13 +21,13 @@ from pandas.core.arrays import (
 )
 
 __all__ = [
-    "ExtensionArray",
-    "ExtensionDtype",
-    "ExtensionScalarOpsMixin",
     "no_default",
-    "register_dataframe_accessor",
+    "ExtensionDtype",
     "register_extension_dtype",
+    "register_dataframe_accessor",
     "register_index_accessor",
     "register_series_accessor",
     "take",
+    "ExtensionArray",
+    "ExtensionScalarOpsMixin",
 ]

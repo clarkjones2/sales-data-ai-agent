@@ -8,8 +8,8 @@ from pandas.core.groupby.grouper import Grouper
 
 __all__ = [
     "DataFrameGroupBy",
-    "GroupBy",
-    "Grouper",
     "NamedAgg",
     "SeriesGroupBy",
+    "GroupBy",
+    "Grouper",
 ]

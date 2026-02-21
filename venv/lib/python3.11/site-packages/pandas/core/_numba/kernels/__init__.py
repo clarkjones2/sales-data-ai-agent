@@ -16,12 +16,12 @@ from pandas.core._numba.kernels.var_ import (
 )
 
 __all__ = [
-    "grouped_mean",
-    "grouped_min_max",
-    "grouped_sum",
-    "grouped_var",
     "sliding_mean",
-    "sliding_min_max",
+    "grouped_mean",
     "sliding_sum",
+    "grouped_sum",
     "sliding_var",
+    "grouped_var",
+    "sliding_min_max",
+    "grouped_min_max",
 ]

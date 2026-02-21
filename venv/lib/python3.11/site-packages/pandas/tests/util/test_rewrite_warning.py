@@ -36,7 +36,4 @@ def test_rewrite_warning(target_category, target_message, hit, new_category):
         with rewrite_warning(
             target_message, target_category, new_message, new_category
         ):
-            warnings.warn(
-                message="Target message",
-                category=FutureWarning,  # pdlint: ignore[warning_class]
-            )
+            warnings.warn(message="Target message", category=FutureWarning)

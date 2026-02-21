@@ -38,15 +38,11 @@ def test_equals():
     assert a1.equals(a2) is False
 
 
-def test_equals_nan_vs_na(using_nan_is_na):
+def test_equals_nan_vs_na():
     # GH#44382
 
     mask = np.zeros(3, dtype=bool)
     data = np.array([1.0, np.nan, 3.0], dtype=np.float64)
-    if using_nan_is_na:
-        # Under PDEP16, all callers of the FloatingArray constructor should
-        #  ensure that mask[np.isnan(data)] = True
-        mask[1] = True
 
     left = FloatingArray(data, mask)
     assert left.equals(left)
@@ -61,11 +57,7 @@ def test_equals_nan_vs_na(using_nan_is_na):
     assert right.equals(right)
     tm.assert_extension_array_equal(right, right)
 
-    if not using_nan_is_na:
-        assert not left.equals(right)
-    else:
-        # the constructor will set the NaN locations to NA
-        assert left.equals(right)
+    assert not left.equals(right)
 
     # with mask[1] = True, the only difference is data[1], which should
     #  not matter for equals

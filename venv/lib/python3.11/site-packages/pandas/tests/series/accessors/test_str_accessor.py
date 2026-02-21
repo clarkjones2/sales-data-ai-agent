@@ -15,8 +15,7 @@ class TestStrAccessor:
 
         # str accessor only valid with string values
         ser = Series(range(5))
-        msg = "Can only use .str accessor with string values, not integer"
-        with pytest.raises(AttributeError, match=msg):
+        with pytest.raises(AttributeError, match="only use .str accessor"):
             ser.str.repeat(2)
 
     def test_str_accessor_updates_on_inplace(self):

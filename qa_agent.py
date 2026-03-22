@@ -7,6 +7,55 @@ import os
 import json
 from database_tools import DatabaseQueryTool
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Database schema definition (from llm_prompts.py)
+DATABASE_SCHEMA_PROMPT = """
+You are a SQL Generator for a SQLite Database.
+
+The schema is as follows. There are notes about each table:
+
+customers(customer_id, customer_name, segment)
+-Primary key is customer_id.
+-Each record represents a unique customer ID
+
+products(product_key, product_id, category, sub_category, product_name)
+-Primary key is product_key
+-Each record represents a unique product
+
+locations(location_id, country, city, state, postal_code, region)
+-Primary key is location_id
+-Each recrod represents a unique location
+
+orders(order_id, order_date, ship_date, ship_mode, customer_id, location_id)
+-Primary key is order_id
+-customer_id is a foreign key -> customers.customer_id
+-location_id is a foreing key -> locations.location_id
+-Each record represents a unique order placed by a customer and associated with a shipping location
+
+order_items(order_id, product_key, sales)
+-order_id and product_key are a composite primary key
+-order_id -> orders.order_id
+-product_key -> products.product_key
+-Each record represents a product included in a specific order.
+
+Functional Dependencies
+Customer_ID → Customer_Name, Segment
+Product_Key → Product_ID , Category, Sub_Category, Product_Name
+Location_ID → Country, City, State, Postal_Code, Region
+Order_ID → Order_Date, Ship_Date, Ship_Mode, Customer_ID, Location_ID
+(Order_ID, Product_Key) → Sales
+
+Entity Relationships
+Customers (1) —— (Many) Orders
+Orders (1) —— (Many) Order_Items
+Products (1) —— (Many) Order_Items
+Locations (1) —— (Many) Orders
+
+"""
 
 class DatabaseQAAgent:
     def __init__(self, db_path: str = 'sample_sales.db', api_key: str = None):
@@ -74,13 +123,9 @@ class DatabaseQAAgent:
         tools = [
             {
                 "name": "query_database",
-                "description": """Execute a SQL query on the sales database to get data.
-                
-The database contains sales data for a vacation package company with tables:
-- customers: Customer information and lead sources
-- products: Vacation packages and pricing
-- salespeople: Sales team members and their teams
-- sales: Individual sales transactions
+                "description": f"""Execute a SQL query on the database to get data.
+
+{DATABASE_SCHEMA_PROMPT}
 
 Use SQLite syntax. Common functions:
 - date('now') for current date
@@ -88,7 +133,7 @@ Use SQLite syntax. Common functions:
 - date('now', '-30 days') for 30 days ago
 - strftime('%Y-%m', date) for year-month formatting
 
-Always filter active sales with: WHERE status = 'Active'
+Always write efficient queries with proper JOINs between related tables.
 """,
                 "input_schema": {
                     "type": "object",
@@ -128,7 +173,7 @@ Always filter active sales with: WHERE status = 'Active'
         # System prompt with context
         current_date = datetime.now().strftime('%B %d, %Y')
         
-        system_prompt = f"""You are a helpful data analyst assistant for a vacation sales company.
+        system_prompt = f"""You are a helpful data analyst assistant.
 
 Today's date is: {current_date}
 
@@ -146,8 +191,8 @@ Important guidelines:
 - Format currency with $ and commas
 - If you're not sure, query the data rather than guessing
 - Explain any caveats or limitations
-- Only include 'Active' status sales unless specifically asked otherwise
 - When comparing periods, show both absolute and percentage changes
+- Use proper JOINs to connect related tables
 
 Keep your answers conversational and helpful, not overly technical.
 """

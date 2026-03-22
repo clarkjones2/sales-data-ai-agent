@@ -2,6 +2,12 @@
 Test script to verify setup
 """
 import sys
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 print(f"Python version: {sys.version}")
 
 try:

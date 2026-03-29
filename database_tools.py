@@ -2,20 +2,25 @@
 Database query tools for the AI agent
 These are the "hands" Claude uses to interact with data
 """
+import os
 import sqlite3
 import json
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any, Dict, List, Optional
+
+def _default_superstore_db_path() -> str:
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "superstore.db")
+
 
 class DatabaseQueryTool:
-    def __init__(self, db_path: str = 'sample_sales.db'):
+    def __init__(self, db_path: Optional[str] = None):
         """
         Initialize the database query tool
         
         Args:
-            db_path: Path to SQLite database file
+            db_path: Path to SQLite database file (defaults to superstore.db beside this package)
         """
-        self.db_path = db_path
+        self.db_path = db_path or _default_superstore_db_path()
         self.query_log = []
         
     def query_database(
@@ -304,17 +309,17 @@ if __name__ == "__main__":
             print(f"   - {table}")
     
     # Test 2: Run a query
-    print("\n2. Running query: Top 3 salespeople")
+    print("\n2. Running query: Top 3 customers by revenue (last 30 days)")
     query = """
-    SELECT 
-        sp.first_name || ' ' || sp.last_name as salesperson,
-        COUNT(*) as sales_count,
-        ROUND(SUM(s.sale_amount), 2) as revenue
-    FROM sales s
-    JOIN salespeople sp ON s.salesperson_id = sp.salesperson_id
-    WHERE s.sale_date >= date('now', '-30 days')
-    AND s.status = 'Active'
-    GROUP BY sp.salesperson_id
+    SELECT
+        c.Customer_Name AS customer,
+        COUNT(DISTINCT o.Order_ID) AS order_count,
+        ROUND(SUM(oi.Sales), 2) AS revenue
+    FROM Order_Items oi
+    JOIN Orders o ON oi.Order_ID = o.Order_ID
+    JOIN Customers c ON o.Customer_ID = c.Customer_ID
+    WHERE o.Order_Date >= date('now', '-30 days')
+    GROUP BY c.Customer_ID
     ORDER BY revenue DESC
     LIMIT 3
     """
@@ -322,14 +327,14 @@ if __name__ == "__main__":
     if result['success']:
         print(f"   {result['message']}")
         for row in result['data']:
-            print(f"   - {row['salesperson']}: {row['sales_count']} sales, ${row['revenue']:,.2f}")
+            print(f"   - {row['customer']}: {row['order_count']} orders, ${row['revenue']:,.2f}")
     
     # Test 3: Export to Excel
     print("\n3. Testing Excel export:")
     export_result = db_tool.export_to_excel(
         sql_query=query,
         filepath='test_export.xlsx',
-        sheet_name='Top Salespeople'
+        sheet_name='Top Customers'
     )
     if export_result['success']:
         print(f"   ✓ {export_result['message']}")

@@ -1,0 +1,129 @@
+{
+  "test_cases": [
+    {
+      "id": 1,
+      "prompt": "How many customers do we have?",
+      "category": "Simple Lookup"
+    },
+    {
+      "id": 2,
+      "prompt": "How many orders are in the system?",
+      "category": "Simple Lookup"
+    },
+    {
+      "id": 3,
+      "prompt": "How many products do we sell?",
+      "category": "Simple Lookup"
+    },
+    {
+      "id": 4,
+      "prompt": "What shipping methods do we offer?",
+      "category": "Simple Lookup"
+    },
+    {
+      "id": 5,
+      "prompt": "What regions do we operate in?",
+      "category": "Simple Lookup"
+    },
+    {
+      "id": 6,
+      "prompt": "What is our total revenue?",
+      "category": "Aggregation"
+    },
+    {
+      "id": 7,
+      "prompt": "What is the average order value?",
+      "category": "Aggregation"
+    },
+    {
+      "id": 8,
+      "prompt": "How much revenue does each product category generate?",
+      "category": "Aggregation"
+    },
+    {
+      "id": 9,
+      "prompt": "What are the total sales for each region?",
+      "category": "Aggregation"
+    },
+    {
+      "id": 10,
+      "prompt": "How much revenue comes from each customer segment?",
+      "category": "Aggregation"
+    },
+    {
+      "id": 11,
+      "prompt": "Show me total sales for the state of California",
+      "category": "Filtering"
+    },
+    {
+      "id": 12,
+      "prompt": "How many orders were shipped using Same Day shipping?",
+      "category": "Filtering"
+    },
+    {
+      "id": 13,
+      "prompt": "What are the sales for the Furniture category?",
+      "category": "Filtering"
+    },
+    {
+      "id": 14,
+      "prompt": "How many customers are in the Consumer segment?",
+      "category": "Filtering"
+    },
+    {
+      "id": 15,
+      "prompt": "What products do we sell in the Phones sub-category?",
+      "category": "Filtering"
+    },
+    {
+      "id": 16,
+      "prompt": "Who are our top 5 customers by total spending?",
+      "category": "Ranking"
+    },
+    {
+      "id": 17,
+      "prompt": "What are the top 3 selling products?",
+      "category": "Ranking"
+    },
+    {
+      "id": 18,
+      "prompt": "Which state has the lowest sales?",
+      "category": "Ranking"
+    },
+    {
+      "id": 19,
+      "prompt": "What is our best selling product category?",
+      "category": "Ranking"
+    },
+    {
+      "id": 20,
+      "prompt": "Which city generates the most revenue?",
+      "category": "Ranking"
+    },
+    {
+      "id": 21,
+      "prompt": "How many orders were placed in 2018?",
+      "category": "Time-Based"
+    },
+    {
+      "id": 22,
+      "prompt": "What were total sales in 2017 compared to 2018?",
+      "category": "Time-Based"
+    },
+    {
+      "id": 23,
+      "prompt": "Which month had the most orders?",
+      "category": "Time-Based"
+    },
+    {
+      "id": 24,
+      "prompt": "Which customer segment generates the most revenue in the West region?",
+      "category": "Complex"
+    },
+    {
+      "id": 25,
+      "prompt": "What is the most popular product category for Corporate customers?",
+      "category": "Complex"
+    }
+  ]
+}

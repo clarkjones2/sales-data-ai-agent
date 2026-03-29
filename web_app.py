@@ -1,16 +1,20 @@
 """
 Streamlit Web Interface for AI Database Agent
 """
+import os
 import streamlit as st
 from qa_agent import DatabaseQAAgent
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
-import os
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+_PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+SUPERSTORE_DB = os.path.join(_PROJECT_DIR, "superstore.db")
+
 # Page config
 st.set_page_config(
     page_title="AI Database Assistant",
@@ -18,9 +22,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize session state
+# Initialize session state (superstore.db: Customers, Locations, Orders, Products, Order_Items)
 if 'agent' not in st.session_state:
-    st.session_state.agent = DatabaseQAAgent()
+    st.session_state.agent = DatabaseQAAgent(db_path=SUPERSTORE_DB)
 if 'conversation' not in st.session_state:
     st.session_state.conversation = []
 
@@ -35,16 +39,16 @@ with st.sidebar:
     # Get some quick stats
     try:
         result = st.session_state.agent.db_tool.query_database(
-            "SELECT COUNT(*) as total_sales FROM sales WHERE status = 'Active'"
+            "SELECT COUNT(*) AS total_orders FROM Orders"
         )
-        total_sales = result['data'][0]['total_sales'] if result['success'] else 0
+        total_orders = result['data'][0]['total_orders'] if result['success'] else 0
         
         result = st.session_state.agent.db_tool.query_database(
-            "SELECT SUM(sale_amount) as total_revenue FROM sales WHERE status = 'Active'"
+            "SELECT COALESCE(SUM(Sales), 0) AS total_revenue FROM Order_Items"
         )
         total_revenue = result['data'][0]['total_revenue'] if result['success'] else 0
         
-        st.metric("Total Active Sales", f"{total_sales:,}")
+        st.metric("Total Orders", f"{total_orders:,}")
         st.metric("Total Revenue", f"${total_revenue:,.2f}")
     except:
         st.info("Database stats loading...")
@@ -53,11 +57,11 @@ with st.sidebar:
     
     st.header("💡 Example Questions")
     example_questions = [
-        "How many sales this month?",
-        "Top 5 salespeople",
+        "How many orders this month?",
+        "Top 5 states by revenue",
         "Sales by product category",
         "Revenue trend last 6 months",
-        "Team performance comparison"
+        "Which region has the most sales?"
     ]
     
     for question in example_questions:
@@ -80,7 +84,7 @@ with col1:
     # User input
     user_question = st.text_input(
         "Type your question here:",
-        placeholder="e.g., Who are the top salespeople this month?",
+        placeholder="e.g., What are the top product categories by revenue?",
         key="question_input"
     )
     
@@ -123,14 +127,13 @@ with col2:
     # Sales by product chart
     try:
         result = st.session_state.agent.db_tool.query_database("""
-            SELECT 
-                p.category,
-                COUNT(*) as sales_count,
-                SUM(s.sale_amount) as revenue
-            FROM sales s
-            JOIN products p ON s.product_id = p.product_id
-            WHERE s.status = 'Active'
-            GROUP BY p.category
+            SELECT
+                p.Category AS category,
+                COUNT(*) AS line_count,
+                SUM(oi.Sales) AS revenue
+            FROM Order_Items oi
+            JOIN Products p ON oi.Product_Key = p.Product_Key
+            GROUP BY p.Category
             ORDER BY revenue DESC
         """)
         
@@ -147,17 +150,17 @@ with col2:
     except:
         st.info("Chart loading...")
     
-    # Top salespeople
+    # Top regions by revenue (last 30 days)
     try:
         result = st.session_state.agent.db_tool.query_database("""
-            SELECT 
-                sp.first_name || ' ' || sp.last_name as name,
-                SUM(s.sale_amount) as revenue
-            FROM sales s
-            JOIN salespeople sp ON s.salesperson_id = sp.salesperson_id
-            WHERE s.status = 'Active'
-            AND s.sale_date >= date('now', '-30 days')
-            GROUP BY sp.salesperson_id
+            SELECT
+                l.Region AS name,
+                SUM(oi.Sales) AS revenue
+            FROM Order_Items oi
+            JOIN Orders o ON oi.Order_ID = o.Order_ID
+            JOIN Locations l ON o.Location_ID = l.Location_ID
+            WHERE o.Order_Date >= date('now', '-30 days')
+            GROUP BY l.Region
             ORDER BY revenue DESC
             LIMIT 5
         """)
@@ -169,8 +172,8 @@ with col2:
                 df,
                 x='name',
                 y='revenue',
-                title='Top 5 Salespeople (Last 30 Days)',
-                labels={'name': 'Salesperson', 'revenue': 'Revenue'}
+                title='Top 5 Regions by Revenue (Last 30 Days)',
+                labels={'name': 'Region', 'revenue': 'Revenue'}
             )
             st.plotly_chart(fig, use_container_width=True)
     except:

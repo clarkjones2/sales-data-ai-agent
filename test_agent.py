@@ -12,9 +12,9 @@ agent = DatabaseQAAgent()
 
 # Test questions
 test_questions = [
-    "How many sales did we have this month?",
-    "Who is our top salesperson?",
-    "What's our total revenue for active sales?"
+    "How many orders did we have this month?",
+    "What is our total revenue?",
+    "Which product category has the highest sales?"
 ]
 
 for i, question in enumerate(test_questions, 1):

@@ -5,16 +5,17 @@ Enhanced version with ability to export query results
 import anthropic
 import os
 import json
+from typing import Optional
 from database_tools import DatabaseQueryTool
 from datetime import datetime
 
 class DatabaseQAAgent:
-    def __init__(self, db_path: str = 'sample_sales.db', api_key: str = None):
+    def __init__(self, db_path: Optional[str] = None, api_key: str = None):
         """
         Initialize the Q&A agent
         
         Args:
-            db_path: Path to SQLite database
+            db_path: Path to SQLite database (defaults to superstore.db next to database_tools.py)
             api_key: Anthropic API key (or use ANTHROPIC_API_KEY env var)
         """
         self.client = anthropic.Anthropic(
@@ -74,21 +75,22 @@ class DatabaseQAAgent:
         tools = [
             {
                 "name": "query_database",
-                "description": """Execute a SQL query on the sales database to get data.
-                
-The database contains sales data for a vacation package company with tables:
-- customers: Customer information and lead sources
-- products: Vacation packages and pricing
-- salespeople: Sales team members and their teams
-- sales: Individual sales transactions
+                "description": """Execute a SQL query on the Superstore database to get data.
+
+Tables (SQLite):
+- Customers: Customer_ID, Customer_Name, Segment
+- Locations: Location_ID, Country, City, State, Postal_Code, Region
+- Orders: Order_ID, Order_Date, Ship_Date, Ship_Mode, Customer_ID, Location_ID
+- Products: Product_Key (PK), Product_ID, Category, Sub_Category, Product_Name
+- Order_Items: Order_ID, Product_Key, Sales (line revenue; join Orders and Products for context)
 
 Use SQLite syntax. Common functions:
 - date('now') for current date
 - date('now', 'start of month') for first day of current month
 - date('now', '-30 days') for 30 days ago
-- strftime('%Y-%m', date) for year-month formatting
+- strftime('%Y-%m', Order_Date) for year-month formatting
 
-Always filter active sales with: WHERE status = 'Active'
+Line revenue is in Order_Items.Sales. Join Order_Items to Orders on Order_ID, and to Products on Product_Key.
 """,
                 "input_schema": {
                     "type": "object",
@@ -158,7 +160,7 @@ The file will be saved with:
         # System prompt with context
         current_date = datetime.now().strftime('%B %d, %Y')
         
-        system_prompt = f"""You are a helpful data analyst assistant for a vacation sales company.
+        system_prompt = f"""You are a helpful data analyst assistant for retail Superstore order and sales data.
 
 Today's date is: {current_date}
 
@@ -173,7 +175,7 @@ When answering questions:
 
 When the user asks to export, save, or download data:
 1. Use the export_to_excel tool
-2. Create a descriptive filename (e.g., 'sales_report_2026-02.xlsx')
+2. Create a descriptive filename (e.g., 'superstore_report_2026-02.xlsx')
 3. Choose an appropriate sheet name
 4. Confirm the export location
 
@@ -182,8 +184,8 @@ Important guidelines:
 - Format currency with $ and commas
 - If you're not sure, query the data rather than guessing
 - Explain any caveats or limitations
- Only include 'Active' status sales unless specifically asked otherwise
-- When comparing periods, show both absolute and percentage changes
+- Revenue for a line item is Order_Items.Sales; total order or customer revenue sums Order_Items.Sales across joined rows
+- When comparing periods, show both absolute and percentage changes when helpful
 
 Keep your answers conversational and helpful, not overly technical.
 """
@@ -311,11 +313,11 @@ if __name__ == "__main__":
     print("\nI can answer questions about your sales data!")
     print("\n📊 NEW: I can now export results to Excel!")
     print("\nExample questions:")
-    print("  • How many sales did we have last month?")
-    print("  • Who is our top salesperson?")
-    print("  • Export all sales from this month to Excel")
-    print("  • Save top 10 salespeople to a spreadsheet")
-    print("  • Create an Excel file with Team A performance")
+    print("  • How many orders did we have last month?")
+    print("  • What is our total revenue by region?")
+    print("  • Export this month's order lines to Excel")
+    print("  • Save top 10 products by revenue to a spreadsheet")
+    print("  • Create an Excel file with sales by category")
     print("\nCommands:")
     print("  • 'exit' - Quit the program")
     print("  • 'reset' - Start a new conversation")
@@ -331,7 +333,7 @@ if __name__ == "__main__":
         print(f"✗ Error initializing agent: {str(e)}")
         print("\nMake sure:")
         print("  1. ANTHROPIC_API_KEY is set")
-        print("  2. sample_sales.db exists")
+        print("  2. superstore.db exists")
         exit(1)
     
     # Main loop

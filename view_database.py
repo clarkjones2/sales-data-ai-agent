@@ -1,54 +1,58 @@
 """
-Quick viewer to see what's in the database
+Quick viewer to see what's in the database (superstore.db)
 """
 import sqlite3
+import os
 import pandas as pd
 
-conn = sqlite3.connect('sample_sales.db')
+_BASE = os.path.dirname(os.path.abspath(__file__))
+conn = sqlite3.connect(os.path.join(_BASE, 'superstore.db'))
 
-print("="*60)
-print("SAMPLE DATA PREVIEW")
-print("="*60)
+print("=" * 60)
+print("SUPERSTORE DATA PREVIEW")
+print("=" * 60)
 
-print("\n1. PRODUCTS:")
-df = pd.read_sql_query("SELECT * FROM products", conn)
+print("\n1. CUSTOMERS (first 5):")
+df = pd.read_sql_query("SELECT * FROM Customers LIMIT 5", conn)
 print(df)
 
-print("\n2. SALESPEOPLE:")
-df = pd.read_sql_query("SELECT * FROM salespeople", conn)
+print("\n2. PRODUCTS (first 5):")
+df = pd.read_sql_query("SELECT * FROM Products LIMIT 5", conn)
 print(df)
 
-print("\n3. RECENT SALES (Last 5):")
+print("\n3. LOCATIONS (first 5):")
+df = pd.read_sql_query("SELECT * FROM Locations LIMIT 5", conn)
+print(df)
+
+print("\n4. RECENT ORDER LINES (last 5 by order date):")
 df = pd.read_sql_query("""
-    SELECT 
-        s.sale_id,
-        c.first_name || ' ' || c.last_name as customer,
-        p.product_name,
-        sp.first_name || ' ' || sp.last_name as salesperson,
-        s.sale_date,
-        s.sale_amount,
-        s.status
-    FROM sales s
-    JOIN customers c ON s.customer_id = c.customer_id
-    JOIN products p ON s.product_id = p.product_id
-    JOIN salespeople sp ON s.salesperson_id = sp.salesperson_id
-    ORDER BY s.sale_date DESC
+    SELECT
+        o.Order_ID,
+        o.Order_Date,
+        c.Customer_Name,
+        p.Product_Name,
+        p.Category,
+        oi.Sales
+    FROM Order_Items oi
+    JOIN Orders o ON oi.Order_ID = o.Order_ID
+    JOIN Customers c ON o.Customer_ID = c.Customer_ID
+    JOIN Products p ON oi.Product_Key = p.Product_Key
+    ORDER BY o.Order_Date DESC
     LIMIT 5
 """, conn)
 print(df)
 
-print("\n4. SALES BY SALESPERSON (This Month):")
+print("\n5. REVENUE BY REGION (this month):")
 df = pd.read_sql_query("""
-    SELECT 
-        sp.first_name || ' ' || sp.last_name as salesperson,
-        sp.team,
-        COUNT(*) as sales_count,
-        SUM(s.sale_amount) as total_revenue
-    FROM sales s
-    JOIN salespeople sp ON s.salesperson_id = sp.salesperson_id
-    WHERE s.sale_date >= date('now', 'start of month')
-    AND s.status = 'Active'
-    GROUP BY sp.salesperson_id
+    SELECT
+        l.Region,
+        COUNT(DISTINCT o.Order_ID) AS order_count,
+        SUM(oi.Sales) AS total_revenue
+    FROM Order_Items oi
+    JOIN Orders o ON oi.Order_ID = o.Order_ID
+    JOIN Locations l ON o.Location_ID = l.Location_ID
+    WHERE o.Order_Date >= date('now', 'start of month')
+    GROUP BY l.Region
     ORDER BY total_revenue DESC
 """, conn)
 print(df)

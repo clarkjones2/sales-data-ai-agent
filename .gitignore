@@ -6,3 +6,6 @@ __pycache__/
 .DS_Store
 *.xlsx
 session_log.json
+charts_output/
+backups/
+exports/

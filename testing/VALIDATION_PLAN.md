@@ -33,20 +33,20 @@ The `validation_runner.py` script:
     -   Response time (seconds)
 5.  Outputs all results to `validation_results.csv`
 
-### Manual Review
 
-PASS or FAIL assigned manually if the 3 criteria are met:
+### Automated Evaluation
 
-- Does the query execute on our database?
-- Does the query match what the user was asking for?
-- Does the NL response accurately translate the query output?
+- Each agent answer is automatically evaluated using an LLM-as-Judge (gpt-4o-mini), which compares the agent's answer to the expected answer and assigns PASS/FAIL with a reason.
+- For ambiguous or complex cases (e.g., Test 15), a `judge_guidance` field in `test_cases.json` can instruct the judge to defer to manual review.
+- **Manual review is only performed on failures** (auto FAILs or MANUAL_REVIEW cases). The reviewer checks the agent's answer, expected answer, and judge reason, and updates the `manual_pass_fail` column if the judge was incorrect.
 
-Note: meeting the timing requirement does not affect pass or fail.
+Note: Meeting the timing requirement does not affect pass or fail.
 
 ### Calculate Results
 
--   **Accuracy** = (Number of Pass) / 25 × 100%
--   **Target**: 80% or better
+-   **Auto Accuracy** = (Number of Auto PASS) / 25 × 100%
+-   **Adjusted Accuracy** = (Number of PASS after manual review) / 25 × 100%
+-   **Target**: 80% or better (adjusted)
 -   **Performance**: All simple queries faster than 10s, complex queries faster than 30s
 
 ## 4. Test Prompts
@@ -63,4 +63,4 @@ See `test_cases.json`
 
 ## 6. Cost
 
-Full execution of the current test plan costs \~\$0.45, using ~100,000 tokens.
+The total cost of a full test run varies by model selected.

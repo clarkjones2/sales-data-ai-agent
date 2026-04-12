@@ -3,127 +3,154 @@
     {
       "id": 1,
       "prompt": "How many customers do we have?",
-      "category": "Simple Lookup"
+      "category": "Simple Lookup",
+      "expected_answer": "793 customers"
     },
     {
       "id": 2,
       "prompt": "How many orders are in the system?",
-      "category": "Simple Lookup"
+      "category": "Simple Lookup",
+      "expected_answer": "4,922 orders"
     },
     {
       "id": 3,
       "prompt": "How many products do we sell?",
-      "category": "Simple Lookup"
+      "category": "Simple Lookup",
+      "expected_answer": "1,894 products"
     },
     {
       "id": 4,
       "prompt": "What shipping methods do we offer?",
-      "category": "Simple Lookup"
+      "category": "Simple Lookup",
+      "expected_answer": "Second Class, Standard Class, First Class, Same Day"
     },
     {
       "id": 5,
       "prompt": "What regions do we operate in?",
-      "category": "Simple Lookup"
+      "category": "Simple Lookup",
+      "expected_answer": "South, West, Central, East"
     },
     {
       "id": 6,
       "prompt": "What is our total revenue?",
-      "category": "Aggregation"
+      "category": "Aggregation",
+      "expected_answer": "$2,261,536.78"
     },
     {
       "id": 7,
       "prompt": "What is the average order value?",
-      "category": "Aggregation"
+      "category": "Aggregation",
+      "expected_answer": "$459.48"
     },
     {
       "id": 8,
       "prompt": "How much revenue does each product category generate?",
-      "category": "Aggregation"
+      "category": "Aggregation",
+      "expected_answer": "Technology $827,455.87, Furniture $728,658.58, Office Supplies $705,422.33"
     },
     {
       "id": 9,
       "prompt": "What are the total sales for each region?",
-      "category": "Aggregation"
+      "category": "Aggregation",
+      "expected_answer": "West $710,219.68, East $669,518.73, Central $492,646.91, South $389,151.46"
     },
     {
       "id": 10,
       "prompt": "How much revenue comes from each customer segment?",
-      "category": "Aggregation"
+      "category": "Aggregation",
+      "expected_answer": "Consumer $1,148,060.53, Corporate $688,494.07, Home Office $424,982.18"
     },
     {
       "id": 11,
       "prompt": "Show me total sales for the state of California",
-      "category": "Filtering"
+      "category": "Filtering",
+      "expected_answer": "$446,306.46"
     },
     {
       "id": 12,
       "prompt": "How many orders were shipped using Same Day shipping?",
-      "category": "Filtering"
+      "category": "Filtering",
+      "expected_answer": "261 orders"
     },
     {
       "id": 13,
       "prompt": "What are the sales for the Furniture category?",
-      "category": "Filtering"
+      "category": "Filtering",
+      "expected_answer": "$728,658.58"
     },
     {
       "id": 14,
       "prompt": "How many customers are in the Consumer segment?",
-      "category": "Filtering"
+      "category": "Filtering",
+      "expected_answer": "409 customers"
     },
     {
       "id": 15,
       "prompt": "What products do we sell in the Phones sub-category?",
-      "category": "Filtering"
+      "category": "Filtering",
+      "expected_answer": "Products from the Phones sub-category, such as Cisco SPA 501G IP Phone, AT&T CL83451, Panasonic KX-TG6844B, among others. There are 189 total.",
+      "judge_guidance": "This test requires manual review. The agent should list products from the Phones sub-category. A partial list is acceptable since there are 189 products. Set auto_pass_fail to MANUAL_REVIEW."
     },
     {
       "id": 16,
       "prompt": "Who are our top 5 customers by total spending?",
-      "category": "Ranking"
+      "category": "Ranking",
+      "expected_answer": "Sean Miller $25,043.05, Tamara Chand $19,052.22, Raymond Buch $15,117.34, Tom Ashbrook $14,595.62, Adrian Barton $14,473.57"
     },
     {
       "id": 17,
       "prompt": "What are the top 3 selling products?",
-      "category": "Ranking"
+      "category": "Ranking",
+      "expected_answer": "Canon imageCLASS 2200 Advanced Copier $61,599.82, Fellowes PB500 Electric Punch Plastic Comb Binding Machine with Manual Bind $27,453.38, Cisco TelePresence System EX90 Videoconferencing Unit $22,638.48"
     },
     {
       "id": 18,
       "prompt": "Which state has the lowest sales?",
-      "category": "Ranking"
+      "category": "Ranking",
+      "expected_answer": "North Dakota with $919.91"
     },
     {
       "id": 19,
       "prompt": "What is our best selling product category?",
-      "category": "Ranking"
+      "category": "Ranking",
+      "expected_answer": "Technology with $827,455.87"
     },
     {
       "id": 20,
       "prompt": "Which city generates the most revenue?",
-      "category": "Ranking"
+      "category": "Ranking",
+      "expected_answer": "New York City with $252,462.55"
     },
     {
       "id": 21,
       "prompt": "How many orders were placed in 2018?",
-      "category": "Time-Based"
+      "category": "Time-Based",
+      "expected_answer": "1,661 orders"
     },
     {
       "id": 22,
       "prompt": "What were total sales in 2017 compared to 2018?",
-      "category": "Time-Based"
+      "category": "Time-Based",
+      "expected_answer": "2017: $600,192.55 (1,295 orders), 2018: $722,052.02 (1,661 orders). Difference of $121,859.47 (20.3% increase). Order growth of 366 orders (28.3% increase).",
+      "judge_guidance": "The key revenue figures for 2017 and 2018 must be correct. Additional context like growth percentages or order counts are acceptable if correct, but omitting them is NOT a failure. Only incorrect values constitute a failure."
     },
     {
       "id": 23,
       "prompt": "Which month had the most orders?",
-      "category": "Time-Based"
+      "category": "Time-Based",
+      "expected_answer": "November 2018 (2018-11) with 259 orders"
     },
     {
       "id": 24,
       "prompt": "Which customer segment generates the most revenue in the West region?",
-      "category": "Complex"
+      "category": "Complex",
+      "expected_answer": "Consumer with $355,241.19"
     },
     {
       "id": 25,
       "prompt": "What is the most popular product category for Corporate customers?",
-      "category": "Complex"
+      "category": "Complex",
+      "expected_answer": "Technology with $244,041.84"
     }
   ]
 }

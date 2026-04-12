@@ -3,15 +3,35 @@ import os
 import json
 import csv
 import time
+import openai
 from datetime import datetime
+from dotenv import load_dotenv
+from llm_judge import judge_answer
+
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from qa_agent import DatabaseQAAgent
+# --- Provider & model from command-line args (or defaults) ---
+PROVIDER = sys.argv[1] if len(sys.argv) > 1 else "anthropic"
+MODEL = sys.argv[2] if len(sys.argv) > 2 else None
+
+if PROVIDER == "openai":
+    from qa_agent_openai import DatabaseQAAgent
+elif PROVIDER == "anthropic":
+    from qa_agent import DatabaseQAAgent
+else:
+    print(f"Unknown provider: {PROVIDER}. Use 'anthropic' or 'openai'.")
+    sys.exit(1)
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_CASES_FILE = os.path.join(SCRIPT_DIR, "test_cases.json")
-RESULTS_FILE = os.path.join(SCRIPT_DIR, "validation_results.csv")
+
+# Build unique output filename: model + timestamp
+_default_models = {"anthropic": "claude-sonnet-4-20250514", "openai": "gpt-4o"}
+_model_label = MODEL or _default_models[PROVIDER]
+_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+RESULTS_FILE = os.path.join(SCRIPT_DIR, f"validation_results_{_model_label}_{_timestamp}.csv")
 
 
 def load_test_cases():
@@ -48,13 +68,17 @@ def run_validation():
     test_cases = load_test_cases()
 
     # Initialize agent
-    print("Initializing agent...")
+    print(f"Initializing agent ({PROVIDER}, {_model_label})...")
     try:
-        agent = DatabaseQAAgent()
-        print("Agent ready.\n")
+        agent = DatabaseQAAgent(model=MODEL) if MODEL else DatabaseQAAgent()
+        print("Agent ready.")
     except Exception as e:
         print(f"ERROR: Could not initialize agent: {e}")
         sys.exit(1)
+
+    # Initialize judge client
+    judge_client = openai.OpenAI()
+    print("Judge ready (gpt-4o-mini).\n")
 
     results = []
 
@@ -62,6 +86,8 @@ def run_validation():
         test_id = tc["id"]
         prompt = tc["prompt"]
         category = tc["category"]
+        expected_answer = tc.get("expected_answer", "")
+        guidance = tc.get("judge_guidance", None)
 
         print(f"[{test_id:02d}/25] {prompt}")
 
@@ -87,26 +113,33 @@ def run_validation():
         else:
             time_pass = "Yes" if elapsed <= 10 else "No"
 
+        # Run LLM judge
+        judgment = judge_answer(prompt, expected_answer, answer, judge_client, guidance)
+
         results.append({
             "id": test_id,
             "category": category,
             "prompt": prompt,
+            "expected_answer": expected_answer,
             "generated_sql": sql,
             "agent_answer": answer,
             "response_time_sec": elapsed,
             "time_req_met": time_pass,
-            "pass_fail": ""
+            "auto_pass_fail": judgment["verdict"],
+            "judge_reason": judgment["reason"],
+            "manual_pass_fail": ""
         })
 
-        print(f"       Time: {elapsed}s | SQL captured: {'Yes' if sql != '(no SQL generated)' else 'No'}")
+        print(f"       Time: {elapsed}s | SQL captured: {'Yes' if sql != '(no SQL generated)' else 'No'} | Judge: {judgment['verdict']}")
         print()
 
     # Write results to CSV
     print(f"Writing results to {RESULTS_FILE}...")
     with open(RESULTS_FILE, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=[
-            "id", "category", "prompt", "generated_sql",
-            "agent_answer", "response_time_sec", "time_req_met", "pass_fail"
+            "id", "category", "prompt", "expected_answer", "generated_sql",
+            "agent_answer", "response_time_sec", "time_req_met",
+            "auto_pass_fail", "judge_reason", "manual_pass_fail"
         ])
         writer.writeheader()
         writer.writerows(results)

@@ -7,6 +7,8 @@ import json
 import os
 from datetime import datetime
 from typing import Optional
+from visualization_tools import VisualizationTool
+from visualization_tools import CREATE_VISUALIZATION_TOOL_SPEC
 
 from dotenv import load_dotenv
 
@@ -199,8 +201,8 @@ Line revenue is in Order_Items.Sales. Join Order_Items to Orders on Order_ID, an
                 }
             },
             CREATE_VISUALIZATION_TOOL_SPEC,
-            LIST_SAVED_REPORTS_TOOL,
-            RUN_SAVED_REPORT_TOOL,
+            #LIST_SAVED_REPORTS_TOOL,
+            #RUN_SAVED_REPORT_TOOL,
             ESTIMATE_QUERY_ROWS_TOOL,
             EXPLAIN_QUERY_PLAN_TOOL,
             RUN_DATA_QUALITY_TOOL,

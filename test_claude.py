@@ -1,13 +1,23 @@
 """
 Test Claude API connection
 """
-import anthropic
 import os
 
+import anthropic
+from dotenv import load_dotenv
+
+# Load .env from the same directory as this script (Python does not read .env automatically)
+_PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_PROJECT_DIR, ".env"))
+
+_api_key = os.environ.get("ANTHROPIC_API_KEY")
+if not _api_key:
+    print("✗ ANTHROPIC_API_KEY is not set.")
+    print("  Add it to .env as ANTHROPIC_API_KEY=... or export it in your shell.")
+    raise SystemExit(1)
+
 # Initialize client
-client = anthropic.Anthropic(
-    api_key=os.environ.get("ANTHROPIC_API_KEY")
-)
+client = anthropic.Anthropic(api_key=_api_key)
 
 # Send a simple test message
 print("Testing Claude API connection...")

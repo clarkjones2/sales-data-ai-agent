@@ -1,19 +1,30 @@
 """
 Streamlit Web Interface for AI Database Agent
 """
+import json
 import os
-import streamlit as st
-from qa_agent import DatabaseQAAgent
+from datetime import datetime
+
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+import streamlit as st
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+from conversation_export import (
+    build_json_export,
+    conversation_to_markdown,
+    conversation_to_pdf_bytes,
+)
+from data_quality import format_data_quality_markdown, run_data_quality_report
+from qa_agent import DatabaseQAAgent
 
 _PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Load .env from project directory (not only cwd)
+load_dotenv(os.path.join(_PROJECT_DIR, ".env"))
+
 SUPERSTORE_DB = os.path.join(_PROJECT_DIR, "superstore.db")
+_EXPORTS_DIR = os.path.join(_PROJECT_DIR, "exports")
+os.makedirs(_EXPORTS_DIR, exist_ok=True)
 
 # Page config
 st.set_page_config(
@@ -27,6 +38,8 @@ if 'agent' not in st.session_state:
     st.session_state.agent = DatabaseQAAgent(db_path=SUPERSTORE_DB)
 if 'conversation' not in st.session_state:
     st.session_state.conversation = []
+if 'dq_report_cache' not in st.session_state:
+    st.session_state.dq_report_cache = None
 
 # Header
 st.title("🤖 AI-Powered Database Assistant")
@@ -60,7 +73,7 @@ with st.sidebar:
         "How many orders this month?",
         "Top 5 states by revenue",
         "Sales by product category",
-        "Revenue trend last 6 months",
+        "Bar chart of revenue by product category",
         "Which region has the most sales?"
     ]
     
@@ -75,6 +88,60 @@ with st.sidebar:
         st.session_state.agent.reset_conversation()
         st.rerun()
 
+    st.markdown("---")
+    st.header("📤 Export session")
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ag = st.session_state.agent
+    payload = build_json_export(
+        ag.conversation_history,
+        ag.db_tool.get_query_log(),
+        ag.last_chart_exports,
+    )
+    st.download_button(
+        label="Download JSON (chat + queries + chart paths)",
+        data=json.dumps(payload, default=str, indent=2),
+        file_name=f"session_export_{ts}.json",
+        mime="application/json",
+    )
+    md_text = conversation_to_markdown(
+        ag.conversation_history,
+        ag.db_tool.get_query_log(),
+    )
+    st.download_button(
+        label="Download Markdown",
+        data=md_text,
+        file_name=f"session_export_{ts}.md",
+        mime="text/markdown",
+    )
+    try:
+        pdf_bytes = conversation_to_pdf_bytes(md_text)
+        st.download_button(
+            label="Download PDF",
+            data=pdf_bytes,
+            file_name=f"session_export_{ts}.pdf",
+            mime="application/pdf",
+        )
+    except Exception as e:
+        st.caption(f"PDF export unavailable: {e}")
+
+    st.markdown("---")
+    st.header("🔍 Data quality")
+    if st.button("Run checks"):
+        st.session_state.dq_report_cache = run_data_quality_report(SUPERSTORE_DB)
+    if st.session_state.dq_report_cache:
+        st.markdown(
+            format_data_quality_markdown(st.session_state.dq_report_cache)[:12000]
+        )
+
+    st.markdown("---")
+    st.header("🗄️ Database backup")
+    if st.button("Create backup now"):
+        br = st.session_state.agent.db_tool.backup_database()
+        if br.get("success"):
+            st.success(br["message"])
+        else:
+            st.error(br.get("message", br))
+
 # Main area
 col1, col2 = st.columns([2, 1])
 
@@ -84,7 +151,7 @@ with col1:
     # User input
     user_question = st.text_input(
         "Type your question here:",
-        placeholder="e.g., What are the top product categories by revenue?",
+        placeholder="e.g., Show a bar chart of orders by product category",
         key="question_input"
     )
     
@@ -102,11 +169,13 @@ with col1:
             
             # Get answer
             answer = st.session_state.agent.ask(user_question)
-            
+            chart_paths = list(st.session_state.agent.last_chart_exports)
+
             st.session_state.conversation.append({
                 'role': 'agent',
                 'content': answer,
-                'timestamp': datetime.now()
+                'timestamp': datetime.now(),
+                'chart_paths': chart_paths,
             })
     
     # Display conversation
@@ -118,6 +187,10 @@ with col1:
             st.markdown(f"**You:** {msg['content']}")
         else:
             st.markdown(f"**Agent:** {msg['content']}")
+            for chart_path in msg.get('chart_paths') or []:
+                if chart_path and os.path.isfile(chart_path):
+                    with open(chart_path, encoding='utf-8') as hf:
+                        st.components.v1.html(hf.read(), height=520, scrolling=True)
         st.caption(msg['timestamp'].strftime('%I:%M %p'))
         st.markdown("---")
 

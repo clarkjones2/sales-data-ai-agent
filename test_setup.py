@@ -1,7 +1,13 @@
 """
 Test script to verify setup
 """
+import os
 import sys
+
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+
 print(f"Python version: {sys.version}")
 
 try:
@@ -28,7 +34,6 @@ try:
 except:
     print("⚠ pyodbc NOT installed (OK for Mac)")
 
-import os
 if os.environ.get("ANTHROPIC_API_KEY"):
     print("✓ API key is set")
     # Show first/last few characters for confirmation

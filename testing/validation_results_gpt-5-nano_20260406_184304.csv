@@ -1,0 +1,338 @@
+id,category,prompt,expected_answer,generated_sql,agent_answer,response_time_sec,time_req_met,auto_pass_fail,judge_reason,manual_pass_fail
+1,Simple Lookup,How many customers do we have?,793 customers,SELECT COUNT(DISTINCT Customer_ID) AS Num_Customers FROM Customers;,"There are 793 unique customers in the database (distinct Customer_IDs in the Customers table).
+
+Would you like a breakdown by segment, region, or another dimension? I can also filter to customers who have placed orders in a specific period if you’d like.",8,Yes,PASS,The agent's answer correctly states the number of customers as 793 and provides additional context about unique customers and Customer_IDs.,
+2,Simple Lookup,How many orders are in the system?,"4,922 orders",SELECT COUNT(*) AS total_orders FROM Orders;,"There are 4,922 orders in the system (based on the Orders table). 
+
+If you’d like, I can break that down by year, month, region, ship mode, or other dimensions.",6.65,Yes,PASS,The agent's answer contains the correct number of orders and provides additional context.,
+3,Simple Lookup,How many products do we sell?,"1,894 products",SELECT COUNT(DISTINCT Product_Key) AS Sold_Products FROM Order_Items; | SELECT COUNT(*) AS Total_Products FROM Products;,"Answer:
+- Distinct products sold (across all orders): 1,894
+- Total products in the catalog: 1,894
+
+Interpretation:
+- Every product in the catalog appears in at least one sale in this dataset. This reflects the current data snapshot. If you expect some items to never sell, we might need to adjust the time window or check catalog completeness.
+
+Would you like a breakdown by category, or see the top-selling products by revenue or quantity?",11.19,No,PASS,"The agent's answer correctly states the number of distinct products sold as 1,894, which matches the expected answer.",
+4,Simple Lookup,What shipping methods do we offer?,"Second Class, Standard Class, First Class, Same Day",SELECT DISTINCT Ship_Mode FROM Orders ORDER BY Ship_Mode;,"We offer four shipping methods based on our Orders data:
+
+- First Class
+- Same Day
+- Second Class
+- Standard Class
+
+If you’d like, I can pull counts or revenue by each method, or show recent usage.",8.36,Yes,PASS,"The agent's answer includes all the correct shipping methods: Second Class, Standard Class, First Class, and Same Day.",
+5,Simple Lookup,What regions do we operate in?,"South, West, Central, East","SELECT DISTINCT Region
+FROM Locations
+ORDER BY Region; | SELECT l.Region,
+       COUNT(DISTINCT o.Order_ID) AS Orders,
+       COALESCE(SUM(oi.Sales), 0) AS Revenue
+FROM Orders o
+JOIN Locations l ON o.Location_ID = l.Location_ID
+JOIN Order_Items oi ON oi.Order_ID = o.Order_ID
+GROUP BY l.Region
+ORDER BY l.Region;","We operate in four regions:
+
+- Central
+- East
+- South
+- West
+
+Here’s a quick snapshot by region (based on all-time data in the dataset):
+
+- Central: 1,156 orders, Revenue $492,646.91 (about 21.79% of total)
+- East: 1,369 orders, Revenue $669,518.73 (about 29.60% of total)
+- South: 810 orders, Revenue $389,151.46 (about 17.19% of total)
+- West: 1,587 orders, Revenue $710,219.68 (about 31.42% of total)
+
+Total revenue across these regions: $2,261,536.78
+
+Notes:
+- Revenue is the sum of Order_Items.Sales for each region.
+- If you’d like a period-filtered view (e.g., last quarter or year-to-date), I can run that too.",18.93,No,FAIL,"The agent's answer includes incorrect revenue figures with cents that are not exact, which violates the evaluation criteria.",
+6,Aggregation,What is our total revenue?,"$2,261,536.78 ",SELECT SUM(Sales) AS Total_Revenue FROM Order_Items;,"Total revenue: $2,261,536.78
+
+What this means: Sum of all line item sales from Order_Items.Sales across the dataset.
+
+If you’d like, I can break this down by:
+- Year or month
+- Region or country
+- Product category or subcategory
+- Customer segment
+
+Tell me how you’d like the breakdown, and I’ll run it.",6.45,Yes,PASS,"The agent's answer matches the expected answer exactly, including the correct amount and format.",
+7,Aggregation,What is the average order value?,$459.48 ,"SELECT AVG(total_order_value) AS average_order_value FROM (
+  SELECT O.Order_ID, SUM(I.Sales) AS total_order_value
+  FROM Orders O
+  JOIN Order_Items I ON O.Order_ID = I.Order_ID
+  GROUP BY O.Order_ID
+) AS per_order; | SELECT COUNT(DISTINCT O.Order_ID) AS order_count FROM Orders O;","The average order value is $459.48.
+
+- Based on 4,922 orders in the dataset (orders with at least one item). The value represents total sales per order averaged across all orders. If you’d like, I can compute the total revenue or break this down by time period, customer segment, or region.",15.42,No,PASS,The agent's answer contains the correct average order value of $459.48 and provides additional context about the number of orders and the nature of the calculation.,
+8,Aggregation,How much revenue does each product category generate?,"Technology $827,455.87, Furniture $728,658.58, Office Supplies $705,422.33","SELECT p.Category AS Category, SUM(oi.Sales) AS Revenue
+FROM Order_Items oi
+JOIN Products p ON oi.Product_Key = p.Product_Key
+GROUP BY p.Category
+ORDER BY Revenue DESC;","Here are the total revenues by product category (all-time, no filters):
+
+- Technology: $827,455.87
+- Furniture: $728,658.58
+- Office Supplies: $705,422.33
+
+Total revenue across all categories: $2,261,536.78
+
+Percent of total:
+- Technology: about 36.6%
+- Furniture: about 32.2%
+- Office Supplies: about 31.2%
+
+If you’d like these broken out by year, region, or with a date range, I can run that as well.",12.39,No,PASS,"The agent's answer contains the correct key facts, numbers, and names for each product category's revenue.",
+9,Aggregation,What are the total sales for each region?,"West $710,219.68, East $669,518.73, Central $492,646.91, South $389,151.46","SELECT l.Region AS Region,
+       SUM(oi.Sales) AS Total_Sales
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Locations l ON o.Location_ID = l.Location_ID
+GROUP BY l.Region
+ORDER BY Total_Sales DESC;","Here are the total sales by region (all-time to date in the dataset):
+
+- West: $710,219.68
+- East: $669,518.73
+- Central: $492,646.91
+- South: $389,151.46
+
+Notes:
+- These totals sum all Order_Items.Sales joined via Orders to Locations (i.e., regional revenue across all orders in the data).
+- No date filter was applied. If you want a specific date range, I can filter and provide updated totals.",11.4,No,PASS,"The agent's answer contains the correct key facts, numbers, and names as expected.",
+10,Aggregation,How much revenue comes from each customer segment?,"Consumer $1,148,060.53, Corporate $688,494.07, Home Office $424,982.18","WITH seg_rev AS (
+  SELECT cu.Segment AS Segment,
+         SUM(oi.Sales) AS Revenue
+  FROM Customers cu
+  JOIN Orders o ON cu.Customer_ID = o.Customer_ID
+  JOIN Order_Items oi ON o.Order_ID = oi.Order_ID
+  GROUP BY cu.Segment
+)
+SELECT Segment,
+       Revenue,
+       ROUND(100.0 * Revenue / (SELECT SUM(Revenue) FROM seg_rev), 2) AS PercentOfTotal
+FROM seg_rev
+ORDER BY Revenue DESC;","Here’s the revenue by customer segment based on all data in the database (summing Order_Items.Sales across all orders):
+
+- Consumer: $1,148,060.53 (50.76% of total)
+- Corporate: $688,494.07 (30.44%)
+- Home Office: $424,982.18 (18.79%)
+
+Total revenue: $2,261,536.78
+
+Notes:
+- Revenue is the sum of line items (Order_Items.Sales) joined to Orders and Customers.
+- This is all-time up to the latest data in the warehouse. If you want a specific date range, I can filter to that period and recompute.",13.83,No,PASS,"The agent's answer contains the correct key facts, numbers, and names for each customer segment revenue.",
+11,Filtering,Show me total sales for the state of California,"$446,306.46 ","SELECT SUM(oi.Sales) AS Total_Sales
+FROM Orders o
+JOIN Order_Items oi ON o.Order_ID = oi.Order_ID
+JOIN Locations l ON o.Location_ID = l.Location_ID
+WHERE UPPER(l.State) = 'CALIFORNIA';","Total sales in California: $446,306.46
+
+Notes:
+- This is the all-time total from the dataset, summing Order_Items.Sales for all orders with a Location in California.
+- If you’d like this broken down by year, month, or by ship date, I can provide those details as well.",8.29,Yes,PASS,"The agent's answer contains the correct total sales amount for California, matching the expected answer exactly.",
+12,Filtering,How many orders were shipped using Same Day shipping?,261 orders,"SELECT COUNT(DISTINCT O.Order_ID) AS Same_Day_Orders
+FROM Orders O
+WHERE O.Ship_Mode LIKE '%Same Day%';","260? Wait, the result shows 261. Let me confirm:
+
+- 261 orders were shipped with a Ship_Mode that includes ""Same Day"" (i.e., Same Day and any variations containing that phrase).
+
+If you’d like, I can break this down by month, region, or customer.",8.22,Yes,PASS,"The agent correctly identified that 261 orders were shipped using Same Day shipping, despite initially stating 260. The final confirmation of 261 orders aligns with the expected answer.",
+13,Filtering,What are the sales for the Furniture category?,"$728,658.58 ","SELECT COALESCE(SUM(oi.Sales), 0) AS Furniture_Sales
+FROM Order_Items oi
+JOIN Products p ON oi.Product_Key = p.Product_Key
+WHERE p.Category = 'Furniture';","The total sales for the Furniture category are $728,658.58.
+
+Would you like a breakdown by sub-category, region, or by month/year?",6.12,Yes,PASS,"The agent's answer contains the correct sales figure for the Furniture category, matching the expected answer exactly.",
+14,Filtering,How many customers are in the Consumer segment?,409 customers,SELECT COUNT(*) AS Consumer_Customers FROM Customers WHERE Segment = 'Consumer';,"There are 409 customers in the Consumer segment. 
+
+Would you like a breakdown by region or city, or a percentage of total customers?",5.49,Yes,PASS,The agent's answer contains the correct number of customers in the Consumer segment.,
+15,Filtering,What products do we sell in the Phones sub-category?,"Products from the Phones sub-category, such as Cisco SPA 501G IP Phone, AT&T CL83451, Panasonic KX-TG6844B, among others. There are 189 total.","SELECT Product_Key, Product_ID, Product_Name, Category, Sub_Category
+FROM Products
+WHERE Sub_Category = 'Phones'
+ORDER BY Product_Name;","Here’s what we have in the Phones sub-category (all are under Category = Technology, Sub_Category = Phones). The results shown are the first 20 items for a sense of the catalog; there are at least 100 items returned by the query, and there may be more beyond what’s shown.
+
+Sample of products (Product_Key, Product_ID, Product_Name):
+1) 1060 | TEC-PH-10000169 | ARKON Windshield Dashboard Air Vent Car Mount Holder
+2) 291  | TEC-PH-10002398 | AT&T 1070 Corded Phone
+3) 827  | TEC-PH-10000576 | AT&T 1080 Corded phone
+4) 1570 | TEC-PH-10004120 | AT&T 1080 Phone
+5) 1429 | TEC-PH-10002890 | AT&T 17929 Lendline Telephone
+6) 305  | TEC-PH-10004614 | AT&T 841000 Phone
+7) 1437 | TEC-PH-10004531 | AT&T CL2909
+8) 1141 | TEC-PH-10001615 | AT&T CL82213
+9) 54   | TEC-PH-10002447 | AT&T CL83451 4-Handset Telephone
+10) 1439 | TEC-PH-10002075 | AT&T EL51110 DECT
+11) 512  | TEC-PH-10000586 | AT&T SB67148 SynJ
+12) 174  | TEC-PH-10003273 | AT&T TR1909W
+13) 300  | TEC-PH-10003645 | Aastra 57i VoIP phone
+14) 1515 | TEC-PH-10002200 | Aastra 6757i CT Wireless VoIP phone
+15) 205  | TEC-PH-10002563 | Adtran 1202752G1
+16) 1371 | TEC-PH-10000912 | Anker 24W Portable Micro USB Car Charger
+17) 127  | TEC-PH-10002293 | Anker 36W 4-Port USB Wall Charger Travel Power Adapter for iPhone 5s 5c 5
+18) 142  | TEC-PH-10001448 | Anker Astro 15000mAh USB Portable Charger
+19) 1452 | TEC-PH-10003187 | Anker Astro Mini 3000mAh Ultra-Compact Portable Charger
+20) 1502 | TEC-PH-10002350 | Apple EarPods with Remote and Mic
+
+Notes and caveats:
+- The list you're asking about is long (the query returned at least 100 items; the display here shows the first 20). If you want the full 100+ items, or all of them without truncation, I can provide a CSV or display them in pages.
+- The Category column for these rows reads “Technology,” while Sub_Category is “Phones.” That’s just how this schema stores it; these are indeed the Phones sub-category items.
+- If you’d like, I can filter by brand (e.g., all iPhone accessories), price range, or search for a specific product_name. I can also export the full set into CSV or Excel.",15.95,No,FAIL,"The agent's answer includes products that do not belong to the Phones sub-category, such as chargers and accessories, and fails to mention key expected products like Cisco SPA 501G IP Phone and Panasonic KX-TG6844B.",Pass
+16,Ranking,Who are our top 5 customers by total spending?,"Sean Miller $25,043.05, Tamara Chand $19,052.22, Raymond Buch $15,117.34, Tom Ashbrook $14,595.62, Adrian Barton $14,473.57","SELECT c.Customer_ID, c.Customer_Name, SUM(oi.Sales) AS Total_Sales
+FROM Customers AS c
+JOIN Orders AS o ON o.Customer_ID = c.Customer_ID
+JOIN Order_Items AS oi ON oi.Order_ID = o.Order_ID
+GROUP BY c.Customer_ID, c.Customer_Name
+ORDER BY Total_Sales DESC
+LIMIT 5;","Here are the top 5 customers by total spending (lifetime in the dataset):
+
+1) SM-20320 — Sean Miller — $25,043.05  
+2) TC-20980 — Tamara Chand — $19,052.22  
+3) RB-19360 — Raymond Buch — $15,117.34  
+4) TA-21385 — Tom Ashbrook — $14,595.62  
+5) AB-10105 — Adrian Barton — $14,473.57
+
+Notes:
+- This uses total Order_Items.Sales across all orders in the dataset (no date filter).
+- If you’d like a time-bounded view (e.g., last 12 months) or a regional breakdown, I can run that next.",9.95,Yes,PASS,"The agent's answer contains all the correct names and spending amounts, matching the expected answer exactly, and includes additional correct information (customer IDs).",
+17,Ranking,What are the top 3 selling products?,"Canon imageCLASS 2200 Advanced Copier $61,599.82, Fellowes PB500 Electric Punch Plastic Comb Binding Machine with Manual Bind $27,453.38, Cisco TelePresence System EX90 Videoconferencing Unit $22,638.48","SELECT p.Product_Key, p.Product_ID, p.Product_Name, SUM(oi.Sales) AS Total_Sales
+FROM Order_Items oi
+JOIN Products p ON oi.Product_Key = p.Product_Key
+GROUP BY p.Product_Key, p.Product_ID, p.Product_Name
+ORDER BY Total_Sales DESC
+LIMIT 3;","Here are the top 3 selling products by revenue (sum of Order_Items.Sales) across all orders:
+
+1) Canon imageCLASS 2200 Advanced Copier
+   - Product_ID: TEC-CO-10004722
+   - Total sales: $61,599.82
+
+2) Fellowes PB500 Electric Punch Plastic Comb Binding Machine with Manual Bind
+   - Product_ID: OFF-BI-10003527
+   - Total sales: $27,453.38
+
+3) Cisco TelePresence System EX90 Videoconferencing Unit
+   - Product_ID: TEC-MA-10002412
+   - Total sales: $22,638.48
+
+Combined revenue for these three products: $111,691.68
+
+Notes:
+- Revenue is based on Order_Items.Sales (line-item revenue) summed across all orders.
+- If you’d like, I can break this down by category, region, time period, or show unit counts as well.",11.21,No,PASS,"The agent's answer contains the correct key facts, numbers, and names for the top 3 selling products, matching the expected answer accurately.",
+18,Ranking,Which state has the lowest sales?,North Dakota with $919.91,"SELECT l.State, COALESCE(SUM(oi.Sales), 0) AS Total_Sales
+FROM Locations l
+LEFT JOIN Orders o ON o.Location_ID = l.Location_ID
+LEFT JOIN Order_Items oi ON oi.Order_ID = o.Order_ID
+GROUP BY l.State
+ORDER BY Total_Sales ASC
+LIMIT 1;","North Dakota has the lowest total sales, with $919.91 in revenue. 
+
+Notes:
+- This total is sum of Order_Items.Sales for all orders shipped from locations in North Dakota.
+- Sales are the line-item revenue; this does not account for any returns or discounts beyond what's reflected in the Sales field.
+- If you’d like, I can show a full list of all states with their totals or drill down by region or city.",11.94,No,PASS,The agent's answer correctly identifies North Dakota as the state with the lowest sales and provides the exact revenue amount of $919.91.,
+19,Ranking,What is our best selling product category?,"Technology with $827,455.87","SELECT p.Category AS Category, SUM(oi.Sales) AS Total_Sales
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Products p ON oi.Product_Key = p.Product_Key
+GROUP BY p.Category
+ORDER BY Total_Sales DESC
+LIMIT 1;","- Best selling product category: Technology
+- Total sales: $827,455.87
+
+How this was determined:
+- Sum of Order_Items.Sales joined to Orders and Products
+- Grouped by Products.Category and ordered descending, taking the top row
+
+Notes:
+- This uses all-time sales (no date filter), based on line revenue (Sales). If you want period-specific results (e.g., last 12 months, current year) I can run that too.
+- If you’d like to see a breakdown by sub-category within Technology or a top-5 list across categories, I can provide that as well.",11.53,No,PASS,"The agent's answer contains the correct key facts, including the product category 'Technology' and the total sales amount '$827,455.87', which matches the expected answer.",
+20,Ranking,Which city generates the most revenue?,"New York City with $252,462.55","WITH city_rev AS (
+  SELECT L.City, SUM(OI.Sales) AS Revenue
+  FROM Orders O
+  JOIN Order_Items OI ON O.Order_ID = OI.Order_ID
+  JOIN Locations L ON O.Location_ID = L.Location_ID
+  GROUP BY L.City
+)
+SELECT City, Revenue
+FROM city_rev
+WHERE Revenue = (SELECT MAX(Revenue) FROM city_rev)
+ORDER BY City;","New York City generates the most revenue.
+
+- City: New York City
+- Revenue: $252,462.55 (all-time across the dataset)
+
+Would you like the top 5 cities or a breakdown by year/month?",10.44,No,FAIL,"The agent's answer does not include the exact revenue amount of $252,462.55, which is critical information.",Pass
+21,Time-Based,How many orders were placed in 2018?,"1,661 orders",SELECT COUNT(*) AS Orders2018 FROM Orders WHERE Order_Date >= '2018-01-01' AND Order_Date < '2019-01-01';,"There were 1,661 orders placed in 2018 (from 2018-01-01 to 2018-12-31). 
+
+If you’d like, I can break this down by month, region, or show total revenue for 2018 as well.",5.42,Yes,PASS,"The agent's answer contains the correct number of orders (1,661) and provides additional context without any incorrect information.",
+22,Time-Based,What were total sales in 2017 compared to 2018?,"2017: $600,192.55 (1,295 orders), 2018: $722,052.02 (1,661 orders). Difference of $121,859.47 (20.3% increase). Order growth of 366 orders (28.3% increase).","SELECT Total_Sales_2017, Total_Sales_2018,
+       (Total_Sales_2018 - Total_Sales_2017) AS Absolute_Change,
+       (CASE WHEN Total_Sales_2017 = 0 THEN NULL
+             ELSE (Total_Sales_2018 * 1.0 / Total_Sales_2017) END) AS Percent_Change
+FROM (
+  SELECT
+    SUM(CASE WHEN strftime('%Y', o.Order_Date) = '2017' THEN oi.Sales ELSE 0 END) AS Total_Sales_2017,
+    SUM(CASE WHEN strftime('%Y', o.Order_Date) = '2018' THEN oi.Sales ELSE 0 END) AS Total_Sales_2018
+  FROM Orders o
+  JOIN Order_Items oi ON o.Order_ID = oi.Order_ID
+  WHERE strftime('%Y', o.Order_Date) IN ('2017','2018')
+) AS t;","Here’s the year-over-year comparison for total sales (sum of Order_Items.Sales across orders in each year):
+
+- 2017 total sales: $600,192.55
+- 2018 total sales: $722,052.02
+- Absolute change: +$121,859.47
+- Percentage change: +20.30% (2018 is about 20.3% higher than 2017)
+
+Notes:
+- Figures are the sum of line-item sales from Order_Items joined to Orders (no additional filters by region or customer).
+- Values are rounded to the nearest cent. If you’d like, I can break it down by product category, region, or customer segment.",23.46,No,PASS,"The agent's answer contains the correct key revenue figures for 2017 and 2018, as well as the correct absolute and percentage changes. All values are accurate and match the expected answer.",
+23,Time-Based,Which month had the most orders?,November 2018 (2018-11) with 259 orders,"WITH monthly AS (
+  SELECT strftime('%Y-%m', Order_Date) AS YearMonth,
+         COUNT(*) AS Orders
+  FROM Orders
+  GROUP BY YearMonth
+)
+SELECT YearMonth, Orders
+FROM monthly
+WHERE Orders = (SELECT MAX(Orders) FROM monthly)
+ORDER BY YearMonth;","November 2018 had the most orders, with 259 orders in that month. 
+
+If you'd like, I can show the top 5 months by order count or provide a month-by-month trend.",9.43,Yes,PASS,The agent's answer contains the correct month (November 2018) and the correct number of orders (259).,
+24,Complex,Which customer segment generates the most revenue in the West region?,"Consumer with $355,241.19","SELECT c.Segment AS Segment, SUM(oi.Sales) AS Revenue
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Locations l ON o.Location_ID = l.Location_ID
+JOIN Customers c ON o.Customer_ID = c.Customer_ID
+WHERE l.Region = 'West'
+GROUP BY c.Segment
+ORDER BY Revenue DESC
+LIMIT 1;","Top segment in the West region: Consumer
+
+- Revenue: $355,241.19
+- Method: Sum of Order_Items.Sales for orders with Location Region = 'West', grouped by Customer Segment.
+
+Would you like a full breakdown of all segments in the West (with their revenues and percentages), or a comparison to other regions?",8.13,Yes,PASS,"The agent's answer correctly identifies the top customer segment as 'Consumer' and provides the exact revenue amount of $355,241.19, which matches the expected answer.",
+25,Complex,What is the most popular product category for Corporate customers?,"Technology with $244,041.84","WITH category_sales AS (
+  SELECT p.Category AS Category, SUM(oi.Sales) AS Total_Sales
+  FROM Order_Items oi
+  JOIN Orders o ON oi.Order_ID = o.Order_ID
+  JOIN Customers c ON o.Customer_ID = c.Customer_ID
+  JOIN Products p ON oi.Product_Key = p.Product_Key
+  WHERE c.Segment = 'Corporate'
+  GROUP BY p.Category
+)
+SELECT Category, Total_Sales
+FROM category_sales
+WHERE Total_Sales = (SELECT MAX(Total_Sales) FROM category_sales)
+ORDER BY Category;","Here's what I found:
+
+- Most popular category for Corporate customers: Technology
+- Total sales (Corporate, all-time): $244,041.84
+
+Notes:
+- The measure used is total order revenue (Sales) from Order_Items joined to Orders and Customers, filtered to Corporate segment.
+- If you’d like, I can break this down further (e.g., by Technology sub-category, by month, or compare to other segments).",12.6,Yes,PASS,"The agent's answer contains the correct key facts, including the product category 'Technology' and the exact total sales amount '$244,041.84'.",

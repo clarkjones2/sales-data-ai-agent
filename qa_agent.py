@@ -19,16 +19,56 @@ from agent_analysis_tools import (
 from conversation_export import build_json_export, conversation_to_markdown, conversation_to_pdf_bytes
 from data_quality import format_data_quality_markdown, run_data_quality_report
 from database_tools import DatabaseQueryTool
-from saved_queries import (
-    LIST_SAVED_REPORTS_TOOL,
-    RUN_SAVED_REPORT_TOOL,
-    get_report_sql,
-    list_saved_reports,
-)
-from visualization_tools import CREATE_VISUALIZATION_TOOL_SPEC, VisualizationTool
+from datetime import datetime
+from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+# Load environment variables from .env file
+load_dotenv()
 
+# Database schema definition (from llm_prompts.py)
+DATABASE_SCHEMA_PROMPT = """
+You are a SQL Generator for a SQLite Database.
+
+The schema is as follows. There are notes about each table:
+
+customers(customer_id, customer_name, segment)
+-Primary key is customer_id.
+-Each record represents a unique customer ID
+
+products(product_key, product_id, category, sub_category, product_name)
+-Primary key is product_key
+-Each record represents a unique product
+
+locations(location_id, country, city, state, postal_code, region)
+-Primary key is location_id
+-Each recrod represents a unique location
+
+orders(order_id, order_date, ship_date, ship_mode, customer_id, location_id)
+-Primary key is order_id
+-customer_id is a foreign key -> customers.customer_id
+-location_id is a foreing key -> locations.location_id
+-Each record represents a unique order placed by a customer and associated with a shipping location
+
+order_items(order_id, product_key, sales)
+-order_id and product_key are a composite primary key
+-order_id -> orders.order_id
+-product_key -> products.product_key
+-Each record represents a product included in a specific order.
+
+Functional Dependencies
+Customer_ID → Customer_Name, Segment
+Product_Key → Product_ID , Category, Sub_Category, Product_Name
+Location_ID → Country, City, State, Postal_Code, Region
+Order_ID → Order_Date, Ship_Date, Ship_Mode, Customer_ID, Location_ID
+(Order_ID, Product_Key) → Sales
+
+Entity Relationships
+Customers (1) —— (Many) Orders
+Orders (1) —— (Many) Order_Items
+Products (1) —— (Many) Order_Items
+Locations (1) —— (Many) Orders
+
+"""
 
 class DatabaseQAAgent:
     def __init__(

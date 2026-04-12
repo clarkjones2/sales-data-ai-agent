@@ -3,10 +3,11 @@ Test script to verify setup
 """
 import os
 import sys
-
+import os
 from dotenv import load_dotenv
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+# Load environment variables from .env file
+load_dotenv()
 
 print(f"Python version: {sys.version}")
 

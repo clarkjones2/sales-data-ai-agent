@@ -1,0 +1,21 @@
+{
+  "description": "Queries that must run successfully against superstore.db (regression / CI without LLM).",
+  "queries": [
+    {
+      "name": "count_orders",
+      "sql": "SELECT COUNT(*) AS n FROM Orders"
+    },
+    {
+      "name": "sum_revenue",
+      "sql": "SELECT ROUND(COALESCE(SUM(Sales), 0), 2) AS rev FROM Order_Items"
+    },
+    {
+      "name": "revenue_by_category",
+      "sql": "SELECT p.Category AS c, ROUND(SUM(oi.Sales), 2) AS r FROM Order_Items oi JOIN Products p ON oi.Product_Key = p.Product_Key GROUP BY p.Category"
+    },
+    {
+      "name": "saved_report_smoke",
+      "sql": "SELECT p.Category AS category, ROUND(SUM(oi.Sales), 2) AS revenue FROM Order_Items oi JOIN Products p ON oi.Product_Key = p.Product_Key GROUP BY p.Category ORDER BY revenue DESC"
+    }
+  ]
+}

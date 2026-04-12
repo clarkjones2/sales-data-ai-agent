@@ -1,0 +1,17 @@
+{
+  "title": "Superstore KPI digest",
+  "queries": [
+    {
+      "title": "Total revenue (all order lines)",
+      "sql": "SELECT ROUND(COALESCE(SUM(Sales), 0), 2) AS total_revenue FROM Order_Items"
+    },
+    {
+      "title": "Order count",
+      "sql": "SELECT COUNT(*) AS order_count FROM Orders"
+    },
+    {
+      "title": "Revenue by region",
+      "sql": "SELECT l.Region AS region, ROUND(SUM(oi.Sales), 2) AS revenue FROM Order_Items oi JOIN Orders o ON oi.Order_ID = o.Order_ID JOIN Locations l ON o.Location_ID = l.Location_ID GROUP BY l.Region ORDER BY revenue DESC"
+    }
+  ]
+}

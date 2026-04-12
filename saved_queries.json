@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "reports": [
+    {
+      "id": "revenue_by_category",
+      "title": "Revenue by product category",
+      "description": "Total line-level revenue grouped by product Category (Superstore).",
+      "sql": "SELECT p.Category AS category, ROUND(SUM(oi.Sales), 2) AS revenue FROM Order_Items oi JOIN Products p ON oi.Product_Key = p.Product_Key GROUP BY p.Category ORDER BY revenue DESC"
+    },
+    {
+      "id": "orders_by_region",
+      "title": "Order count by region",
+      "description": "Number of distinct orders per geographic Region.",
+      "sql": "SELECT l.Region AS region, COUNT(DISTINCT o.Order_ID) AS order_count FROM Orders o JOIN Locations l ON o.Location_ID = l.Location_ID GROUP BY l.Region ORDER BY order_count DESC"
+    },
+    {
+      "id": "top_customers_by_revenue",
+      "title": "Top 20 customers by revenue",
+      "description": "Customers ranked by total Order_Items sales.",
+      "sql": "SELECT c.Customer_Name AS customer, ROUND(SUM(oi.Sales), 2) AS revenue FROM Order_Items oi JOIN Orders o ON oi.Order_ID = o.Order_ID JOIN Customers c ON o.Customer_ID = c.Customer_ID GROUP BY c.Customer_ID ORDER BY revenue DESC LIMIT 20"
+    }
+  ]
+}

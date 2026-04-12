@@ -3,25 +3,42 @@ Database query tools for the AI agent
 These are the "hands" Claude uses to interact with data
 """
 import os
+import re
+import shutil
 import sqlite3
 import json
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 def _default_superstore_db_path() -> str:
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "superstore.db")
 
 
+def _sqlite_connect(db_path: str, read_only: bool = False) -> sqlite3.Connection:
+    """Open SQLite; use URI read-only mode when read_only=True (no accidental writes)."""
+    p = Path(os.path.abspath(db_path))
+    if read_only:
+        uri = p.as_uri() + "?mode=ro"
+        return sqlite3.connect(uri, uri=True)
+    return sqlite3.connect(str(p))
+
+
 class DatabaseQueryTool:
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None, read_only: bool = True):
         """
         Initialize the database query tool
         
         Args:
             db_path: Path to SQLite database file (defaults to superstore.db beside this package)
+            read_only: If True, open DB in read-only mode (recommended for the agent)
         """
         self.db_path = db_path or _default_superstore_db_path()
+        self.read_only = read_only
         self.query_log = []
+
+    def _connect(self) -> sqlite3.Connection:
+        return _sqlite_connect(self.db_path, read_only=self.read_only)
         
     def query_database(
         self, 
@@ -49,8 +66,7 @@ class DatabaseQueryTool:
         start_time = datetime.now()
         
         try:
-            # Connect to database
-            conn = sqlite3.connect(self.db_path)
+            conn = self._connect()
             conn.row_factory = sqlite3.Row  # This lets us access columns by name
             cursor = conn.cursor()
             
@@ -282,6 +298,107 @@ class DatabaseQueryTool:
         Return log of all queries executed
         """
         return self.query_log
+
+    @staticmethod
+    def _normalize_select_sql(sql_query: str) -> str:
+        return sql_query.strip().rstrip(";").strip()
+
+    def estimate_select_row_count(self, sql_query: str) -> Dict[str, Any]:
+        """
+        Return COUNT(*) for a SELECT subquery (how many rows the full query would return).
+        """
+        s = self._normalize_select_sql(sql_query)
+        if not re.match(r"(?is)\s*select\s", s):
+            return {
+                "success": False,
+                "message": "estimate_query_rows only supports a single SELECT statement.",
+            }
+        wrapped = f"SELECT COUNT(*) AS row_estimate FROM ({s}) AS _subq"
+        start = datetime.now()
+        try:
+            conn = self._connect()
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute(wrapped)
+            row = cur.fetchone()
+            conn.close()
+            n = int(row[0]) if row else 0
+            elapsed = (datetime.now() - start).total_seconds()
+            return {
+                "success": True,
+                "row_estimate": n,
+                "execution_time": elapsed,
+                "message": f"Estimated rows: {n:,}",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"Could not estimate rows: {e}",
+                "error": str(e),
+            }
+
+    def explain_query_plan(self, sql_query: str) -> Dict[str, Any]:
+        """SQLite EXPLAIN QUERY PLAN for a SELECT (helps reason about cost)."""
+        s = self._normalize_select_sql(sql_query)
+        if not re.match(r"(?is)\s*select\s", s):
+            return {
+                "success": False,
+                "message": "explain_query_plan only supports SELECT statements.",
+            }
+        try:
+            conn = self._connect()
+            cur = conn.cursor()
+            cur.execute(f"EXPLAIN QUERY PLAN {s}")
+            rows = cur.fetchall()
+            conn.close()
+            lines = []
+            for r in rows:
+                lines.append(
+                    {
+                        "detail": r[3] if len(r) > 3 else str(r),
+                    }
+                )
+            return {
+                "success": True,
+                "plan_lines": [x["detail"] for x in lines],
+                "raw_rows": len(rows),
+                "message": f"EXPLAIN QUERY PLAN returned {len(rows)} line(s)",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": str(e),
+                "error": str(e),
+            }
+
+    def backup_database(self, backup_dir: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Create a consistent backup copy using SQLite's backup API (safe vs file copy).
+        """
+        base = backup_dir or os.path.join(
+            os.path.dirname(os.path.abspath(self.db_path)), "backups"
+        )
+        os.makedirs(base, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dest_path = os.path.join(base, f"superstore_backup_{stamp}.db")
+        src_conn = None
+        dest_conn = None
+        try:
+            src_conn = sqlite3.connect(self.db_path)
+            dest_conn = sqlite3.connect(dest_path)
+            src_conn.backup(dest_conn)
+            return {
+                "success": True,
+                "filepath": os.path.abspath(dest_path),
+                "message": f"Backup written to {dest_path}",
+            }
+        except Exception as e:
+            return {"success": False, "message": str(e), "error": str(e)}
+        finally:
+            if dest_conn:
+                dest_conn.close()
+            if src_conn:
+                src_conn.close()
     
     def export_log(self, filepath: str):
         """

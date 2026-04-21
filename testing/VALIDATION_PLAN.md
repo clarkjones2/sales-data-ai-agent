@@ -63,4 +63,33 @@ See `test_cases.json`
 
 ## 6. Cost
 
+
 The total cost of a full test run varies by model selected.
+
+## 7. How to Run Validation (Anthropic vs GPT)
+
+To run the validation suite with different agent models:
+
+**Claude Sonnet (Anthropic):**
+
+```bash
+python3 testing/validation_runner.py anthropic
+```
+
+This uses the default Claude Sonnet model as the agent. Requires `ANTHROPIC_API_KEY` in your `.env` file.
+
+**OpenAI GPT (e.g., GPT-4o):**
+
+```bash
+python3 testing/validation_runner.py openai gpt-4o
+```
+
+This uses the specified OpenAI model as the agent. Requires `OPENAI_API_KEY` in your `.env` file.
+
+**Judge Model:**
+
+The LLM judge always uses GPT-4o-mini (OpenAI) for automated evaluation, regardless of the agent model.
+
+**Output:**
+
+Results are saved as `validation_results_<model>_<timestamp>.csv` in the `testing/` directory.

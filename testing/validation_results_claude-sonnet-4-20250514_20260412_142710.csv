@@ -1,0 +1,380 @@
+id,category,prompt,expected_answer,generated_sql,agent_answer,response_time_sec,time_req_met,auto_pass_fail,judge_reason,manual_pass_fail
+1,Simple Lookup,How many customers do we have?,793 customers,SELECT COUNT(*) as customer_count FROM Customers,We have **793 customers** in our database (from query_database on the Customers table). This represents our total customer base across all segments and regions.,4.25,Yes,PASS,The agent's answer contains the correct number of customers (793) and provides additional context without any incorrect information.,
+2,Simple Lookup,How many orders are in the system?,"4,922 orders",SELECT COUNT(*) as total_orders FROM Orders,"There are **4,922 orders** in the system (from query_database on the Orders table). This represents the total number of unique orders placed by customers across all time periods in the database.",4.63,Yes,PASS,The agent's answer contains the correct number of orders and provides additional context without any incorrect information.,
+3,Simple Lookup,How many products do we sell?,"1,894 products",SELECT COUNT(*) as product_count FROM Products,"Based on the query of our Products table, **we sell 1,894 different products** in our catalog.
+
+This count represents the total number of unique products across all categories and subcategories that we offer to customers.",4.3,Yes,PASS,"The agent's answer contains the correct number of products (1,894) and accurately describes the count as unique products in the catalog.",
+4,Simple Lookup,What shipping methods do we offer?,"Second Class, Standard Class, First Class, Same Day",SELECT DISTINCT Ship_Mode FROM Orders ORDER BY Ship_Mode,"Based on the orders data, we offer 4 different shipping methods:
+
+1. **First Class**
+2. **Same Day** 
+3. **Second Class**
+4. **Standard Class**
+
+These shipping modes are used across all orders in our system. Same Day appears to be our fastest option, while Standard Class is likely our most economical shipping method.",4.91,Yes,PASS,The agent's answer includes all the correct shipping methods and presents them accurately.,
+5,Simple Lookup,What regions do we operate in?,"South, West, Central, East",SELECT DISTINCT Region FROM Locations ORDER BY Region,"Based on the location data, we operate in **4 regions**:
+
+1. **Central**
+2. **East** 
+3. **South**
+4. **West**
+
+These appear to be the standard U.S. regional divisions. If you'd like to see more details about each region (like which states or cities are included), or get counts of locations/orders by region, I'd be happy to dig deeper into that data for you.",5.22,Yes,PASS,"The agent's answer correctly identifies all four regions: Central, East, South, and West.",
+6,Aggregation,What is our total revenue?,"$2,261,536.78 ",SELECT SUM(Sales) as total_revenue FROM Order_Items,"Your total revenue is **$2,261,537** (from query_database on aggregated Order_Items). This represents the sum of all sales across all order line items in your database.",4.4,Yes,FAIL,"The agent provided an incorrect total revenue of $2,261,537 instead of the expected $2,261,536.78.",PASS
+7,Aggregation,What is the average order value?,$459.48 ,"SELECT 
+    COUNT(DISTINCT o.Order_ID) as total_orders,
+    SUM(oi.Sales) as total_revenue,
+    ROUND(SUM(oi.Sales) / COUNT(DISTINCT o.Order_ID), 2) as average_order_value
+FROM Orders o
+JOIN Order_Items oi ON o.Order_ID = oi.Order_ID","Based on the data from our Superstore database, the **average order value is $459.48**.
+
+This calculation is based on:
+- **4,922 total orders** in the database
+- **$2,261,537** in total revenue across all order items
+- Average calculated by dividing total revenue by the number of distinct orders
+
+This metric gives you a good sense of the typical spending per customer transaction in your Superstore business. The AOV of $459.48 suggests customers are making substantial purchases, likely buying multiple items or higher-value products per order.",7.16,Yes,PASS,The agent's answer contains the correct average order value of $459.48 and provides accurate supporting details about total orders and total revenue.,
+8,Aggregation,How much revenue does each product category generate?,"Technology $827,455.87, Furniture $728,658.58, Office Supplies $705,422.33","SELECT 
+    p.Category,
+    SUM(oi.Sales) as Total_Revenue,
+    COUNT(oi.Order_ID) as Number_of_Orders
+FROM Order_Items oi
+JOIN Products p ON oi.Product_Key = p.Product_Key
+GROUP BY p.Category
+ORDER BY Total_Revenue DESC","Based on the database query, here's how much revenue each product category generates:
+
+## Revenue by Product Category
+
+1. **Technology**: $827,456 (1,811 orders)
+2. **Furniture**: $728,659 (2,076 orders)  
+3. **Office Supplies**: $705,422 (5,905 orders)
+
+**Key Insights:**
+- Technology is the highest revenue generator at $827,456, despite having fewer orders than the other categories
+- Office Supplies has the most orders (5,905) but generates the least revenue, indicating lower average order values
+- Furniture falls in the middle for both revenue and order count
+- The total revenue across all categories is approximately $2.26 million
+
+The data shows that while Office Supplies drives the most transaction volume, Technology products command higher prices and generate the most revenue per order.",7.6,Yes,FAIL,"The agent provided incorrect revenue figures for Technology and Furniture, which do not match the expected answer. The expected revenue for Technology is $827,455.87, and for Furniture, it is $728,658.58. The agent's figures are rounded and incorrect.",PASS
+9,Aggregation,What are the total sales for each region?,"West $710,219.68, East $669,518.73, Central $492,646.91, South $389,151.46","SELECT 
+    l.Region,
+    SUM(oi.Sales) as Total_Sales
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Locations l ON o.Location_ID = l.Location_ID
+GROUP BY l.Region
+ORDER BY Total_Sales DESC","Here are the total sales for each region, ranked from highest to lowest:
+
+1. **West**: $710,219.68
+2. **East**: $669,518.73
+3. **Central**: $492,646.91
+4. **South**: $389,151.46
+
+The West region leads in total sales, generating about $40,700 more than the East region. There's a significant gap between the top two regions (West and East) and the bottom two (Central and South), with the West region generating nearly 1.8 times the sales of the South region.
+
+The total sales across all regions sum to approximately $2.26 million, based on the aggregated Order_Items sales data joined with Orders and Locations tables.",6.55,Yes,PASS,"The agent's answer contains the correct key facts, numbers, and names for total sales in each region, matching the expected answer exactly.",
+10,Aggregation,How much revenue comes from each customer segment?,"Consumer $1,148,060.53, Corporate $688,494.07, Home Office $424,982.18","SELECT 
+    c.Segment,
+    COUNT(DISTINCT o.Order_ID) as order_count,
+    SUM(oi.Sales) as total_revenue,
+    ROUND(AVG(oi.Sales), 2) as avg_line_item_value,
+    COUNT(DISTINCT c.Customer_ID) as unique_customers
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Customers c ON o.Customer_ID = c.Customer_ID
+GROUP BY c.Segment
+ORDER BY total_revenue DESC","Based on my analysis of the order data, here's how revenue breaks down by customer segment:
+
+## Revenue by Customer Segment
+
+**Consumer Segment** - $1,148,061
+- Generates the most revenue at 50.4% of total sales
+- 2,537 orders from 409 unique customers
+- Average line item value: $225.15
+
+**Corporate Segment** - $688,494  
+- Second highest at 30.2% of total revenue
+- 1,491 orders from 236 unique customers  
+- Average line item value: $233.23
+
+**Home Office Segment** - $424,982
+- Smallest segment at 18.7% of total revenue
+- 894 orders from 148 unique customers
+- Highest average line item value: $244.10
+
+## Key Insights:
+- **Consumer** customers drive the majority of revenue despite having the lowest average order value, showing the power of volume
+- **Home Office** customers have the highest average spending per line item ($244.10), suggesting they buy higher-value products
+- **Corporate** customers fall in the middle for both volume and spending patterns
+
+The Consumer segment's dominance comes from having the largest customer base (409 customers) and highest order volume, making them the most important segment for overall revenue generation.",10.04,No,FAIL,"The agent provided an incorrect revenue figure for the Consumer Segment ($1,148,061 instead of $1,148,060.53), which is a critical error.",PASS
+11,Filtering,Show me total sales for the state of California,"$446,306.46 ","SELECT 
+    l.State,
+    SUM(oi.Sales) as total_sales,
+    COUNT(DISTINCT o.Order_ID) as order_count
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Locations l ON o.Location_ID = l.Location_ID
+WHERE l.State = 'California'
+GROUP BY l.State","Based on the data from our order items and location records, **California has total sales of $446,306.46** across 1,002 distinct orders.
+
+This represents the sum of all line item revenues (Order_Items.Sales) for orders shipped to California locations in our database.",6.96,Yes,PASS,"The agent's answer contains the correct total sales amount of $446,306.46 and provides additional correct context about the number of orders and the source of the data.",
+12,Filtering,How many orders were shipped using Same Day shipping?,261 orders,"SELECT COUNT(*) as same_day_orders
+FROM Orders 
+WHERE Ship_Mode = 'Same Day'","Based on the query results, there were **261 orders** shipped using Same Day shipping mode.
+
+This represents orders where customers paid for the fastest shipping option available in the Superstore system.",5.28,Yes,PASS,The agent's answer contains the correct number of orders (261) and accurately describes the shipping mode.,
+13,Filtering,What are the sales for the Furniture category?,"$728,658.58 ","SELECT 
+    p.Category,
+    SUM(oi.Sales) as Total_Sales,
+    COUNT(oi.Order_ID) as Number_of_Items
+FROM Order_Items oi
+JOIN Products p ON oi.Product_Key = p.Product_Key
+WHERE p.Category = 'Furniture'
+GROUP BY p.Category","The total sales for the Furniture category is **$728,659** (rounded to the nearest dollar). This represents 2,076 individual line items sold across all orders in the database.
+
+To put this in perspective, the Furniture category has generated substantial revenue with an average sale value of about $351 per item ($728,659 ÷ 2,076 items).",8.09,Yes,FAIL,"The agent's answer provides an incorrect rounded figure of $728,659 instead of the expected $728,658.58.",PASS
+14,Filtering,How many customers are in the Consumer segment?,409 customers,"SELECT COUNT(*) as consumer_customers 
+FROM Customers 
+WHERE Segment = 'Consumer'","There are **409 customers** in the Consumer segment.
+
+This count comes from querying the Customers table directly, filtering for records where the Segment field equals 'Consumer'.",5.22,Yes,PASS,The agent's answer contains the correct number of customers (409) and accurately describes the method used to obtain this information.,
+15,Filtering,What products do we sell in the Phones sub-category?,"Products from the Phones sub-category, such as Cisco SPA 501G IP Phone, AT&T CL83451, Panasonic KX-TG6844B, among others. There are 189 total.","SELECT Product_ID, Product_Name, Category 
+FROM Products 
+WHERE Sub_Category = 'Phones'
+ORDER BY Product_Name","We carry a wide variety of products in the Phones sub-category! The query returned 100 products, and there are more available in the database. Here's what we sell in the Phones sub-category:
+
+**Product Types Include:**
+- **Smartphones:** Apple iPhones (5, 5C, 5S), HTC One series, LG G2/G3, BlackBerry Q10, Google Nexus 5, Motorola Droid, Samsung Galaxy devices
+- **Corded Phones:** AT&T corded phones (models 1070, 1080, etc.), GE phones, Ativa expandable phone systems
+- **VoIP Business Phones:** Cisco IP phones, Avaya digital phones, Grandstream phones, Aastra phones, Mitel phones
+- **Phone Accessories:** Chargers, cables, cases, stands, mounts, headsets, speakers
+- **Conference Phones:** ClearOne and Konftel conference phone systems
+- **Specialty Phones:** Amplified phones for hearing assistance, antique-style phones
+
+All products are categorized under ""Technology"" and span from basic corded phones to advanced business VoIP systems and the latest smartphones with their accessories. The selection includes both consumer and business-grade communication devices.
+
+Would you like me to show you specific types of phones (like just smartphones or business phones) or provide more details about any particular products?",11.81,No,FAIL,"The agent's answer includes incorrect product types and does not mention the specific products listed in the expected answer, such as Cisco SPA 501G IP Phone, AT&T CL83451, and Panasonic KX-TG6844B.",PASS
+16,Ranking,Who are our top 5 customers by total spending?,"Sean Miller $25,043.05, Tamara Chand $19,052.22, Raymond Buch $15,117.34, Tom Ashbrook $14,595.62, Adrian Barton $14,473.57","SELECT 
+    c.Customer_Name,
+    c.Customer_ID,
+    c.Segment,
+    SUM(oi.Sales) AS total_spending
+FROM Customers c
+JOIN Orders o ON c.Customer_ID = o.Customer_ID
+JOIN Order_Items oi ON o.Order_ID = oi.Order_ID
+GROUP BY c.Customer_ID, c.Customer_Name, c.Segment
+ORDER BY total_spending DESC
+LIMIT 5","Here are our top 5 customers by total spending:
+
+1. **Sean Miller** (SM-20320) - Home Office segment
+   - Total spending: **$25,043.05**
+
+2. **Tamara Chand** (TC-20980) - Corporate segment
+   - Total spending: **$19,052.22**
+
+3. **Raymond Buch** (RB-19360) - Consumer segment
+   - Total spending: **$15,117.34**
+
+4. **Tom Ashbrook** (TA-21385) - Home Office segment
+   - Total spending: **$14,595.62**
+
+5. **Adrian Barton** (AB-10105) - Consumer segment
+   - Total spending: **$14,473.57**
+
+Some interesting insights from this data:
+- Sean Miller is by far our biggest spender, with over $25,000 in total purchases
+- The top 5 customers represent a mix of all three segments (Home Office, Corporate, and Consumer)
+- There's a significant gap between our #1 customer (Sean Miller at $25K) and #2 (Tamara Chand at $19K)
+- The spending range for positions 2-5 is relatively close, spanning from about $14.5K to $19K
+
+This analysis is based on aggregated Order_Items.Sales data joined across customer orders.",15.57,No,PASS,"The agent's answer contains all the correct key facts, numbers, and names for the top 5 customers by total spending, matching the expected answer exactly.",
+17,Ranking,What are the top 3 selling products?,"Canon imageCLASS 2200 Advanced Copier $61,599.82, Fellowes PB500 Electric Punch Plastic Comb Binding Machine with Manual Bind $27,453.38, Cisco TelePresence System EX90 Videoconferencing Unit $22,638.48","SELECT 
+    p.Product_Name,
+    p.Category,
+    p.Sub_Category,
+    SUM(oi.Sales) as Total_Sales,
+    COUNT(oi.Order_ID) as Order_Count
+FROM Order_Items oi
+JOIN Products p ON oi.Product_Key = p.Product_Key
+GROUP BY p.Product_Key, p.Product_Name, p.Category, p.Sub_Category
+ORDER BY Total_Sales DESC
+LIMIT 3","Based on the sales data, here are the **top 3 selling products** by total revenue:
+
+## 1. Canon imageCLASS 2200 Advanced Copier
+- **Category:** Technology → Copiers  
+- **Total Sales:** $61,599.82
+- **Orders:** 5 orders
+
+## 2. Fellowes PB500 Electric Punch Plastic Comb Binding Machine with Manual Bind
+- **Category:** Office Supplies → Binders
+- **Total Sales:** $27,453.38  
+- **Orders:** 10 orders
+
+## 3. Cisco TelePresence System EX90 Videoconferencing Unit
+- **Category:** Technology → Machines
+- **Total Sales:** $22,638.48
+- **Orders:** 1 order
+
+**Key insights:**
+- The Canon copier is the clear winner with over $61K in sales across just 5 orders, indicating high-value individual sales
+- The Fellowes binding machine has the most orders (10) among the top 3, showing consistent demand
+- All top 3 products are business equipment (copiers, binding machines, videoconferencing), suggesting strong B2B sales
+- Technology products dominate 2 of the top 3 spots
+
+*Data sourced from query_database on aggregated Order_Items sales.*",9.72,Yes,PASS,"The agent's answer contains the correct key facts, numbers, and names for the top 3 selling products, matching the expected answer accurately.",
+18,Ranking,Which state has the lowest sales?,North Dakota with $919.91,"SELECT 
+    l.State,
+    SUM(oi.Sales) as total_sales
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Locations l ON o.Location_ID = l.Location_ID
+GROUP BY l.State
+ORDER BY total_sales ASC
+LIMIT 10","Based on the query results, **North Dakota** has the lowest sales among all states with only **$919.91** in total sales.
+
+The bottom 10 states by sales are:
+1. North Dakota - $919.91
+2. West Virginia - $1,209.82
+3. Maine - $1,270.53
+4. South Dakota - $1,315.56
+5. Wyoming - $1,603.14
+6. District of Columbia - $2,865.02
+7. Kansas - $2,914.31
+8. Idaho - $4,382.49
+9. Iowa - $4,443.56
+10. New Mexico - $4,783.52
+
+North Dakota significantly trails the second-lowest state (West Virginia) by about $290. These lower-performing states tend to be either smaller in population or less commercially active regions in the Superstore's customer base.",6.78,Yes,PASS,"The agent's answer correctly identifies North Dakota as having the lowest sales with the exact amount of $919.91, and provides additional accurate information about the bottom 10 states by sales.",
+19,Ranking,What is our best selling product category?,"Technology with $827,455.87","SELECT 
+    p.Category,
+    SUM(oi.Sales) as Total_Sales,
+    COUNT(oi.Order_ID) as Order_Count
+FROM Order_Items oi
+JOIN Products p ON oi.Product_Key = p.Product_Key
+GROUP BY p.Category
+ORDER BY Total_Sales DESC","Based on the sales data, **Technology** is your best-selling product category with **$827,456** in total sales from 1,811 orders.
+
+Here's the complete breakdown by category:
+
+1. **Technology**: $827,456 (1,811 orders)
+2. **Furniture**: $728,659 (2,076 orders) 
+3. **Office Supplies**: $705,422 (5,905 orders)
+
+Interestingly, while Technology leads in total revenue, Office Supplies has by far the most individual orders (5,905), suggesting Technology products have a higher average order value per item. Furniture falls in the middle with moderate revenue and order count.
+
+Technology's strong performance likely reflects the higher price points of tech products compared to typical office supplies or furniture items.",12.59,No,FAIL,"The agent provided an incorrect total sales figure for Technology, stating $827,456 instead of the expected $827,455.87.",PASS
+20,Ranking,Which city generates the most revenue?,"New York City with $252,462.55","SELECT 
+    l.City,
+    l.State,
+    SUM(oi.Sales) as total_revenue
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Locations l ON o.Location_ID = l.Location_ID
+GROUP BY l.City, l.State
+ORDER BY total_revenue DESC
+LIMIT 10","**New York City, New York** generates the most revenue with **$252,463** in total sales.
+
+Here are the top 10 revenue-generating cities:
+
+1. **New York City, NY** - $252,463
+2. **Los Angeles, CA** - $173,420  
+3. **Seattle, WA** - $116,106
+4. **San Francisco, CA** - $109,041
+5. **Philadelphia, PA** - $108,842
+6. **Houston, TX** - $63,956
+7. **Chicago, IL** - $47,820
+8. **San Diego, CA** - $47,521
+9. **Detroit, MI** - $42,447
+10. **Jacksonville, FL** - $39,133
+
+New York City is clearly the top performer, generating about 45% more revenue than Los Angeles, the second-highest city. The top 3 cities (NYC, LA, and Seattle) account for a significant portion of total revenue, with California having strong representation with 3 cities in the top 10.",8.08,Yes,FAIL,"The agent provided an incorrect revenue amount for New York City ($252,463 instead of $252,462.55).",PASS
+21,Time-Based,How many orders were placed in 2018?,"1,661 orders","SELECT COUNT(*) as order_count 
+FROM Orders 
+WHERE strftime('%Y', Order_Date) = '2018'","In 2018, there were **1,661 orders** placed in the Superstore database. This count represents the total number of unique orders (based on Order_ID) that had an order date within the 2018 calendar year.",10.29,No,PASS,"The agent's answer contains the correct number of orders (1,661) and provides additional context about the count being based on unique Order_IDs within the 2018 calendar year.",PASS
+22,Time-Based,What were total sales in 2017 compared to 2018?,"2017: $600,192.55 (1,295 orders), 2018: $722,052.02 (1,661 orders). Difference of $121,859.47 (20.3% increase). Order growth of 366 orders (28.3% increase).","SELECT 
+    strftime('%Y', o.Order_Date) as year,
+    SUM(oi.Sales) as total_sales,
+    COUNT(DISTINCT o.Order_ID) as order_count
+FROM Orders o
+JOIN Order_Items oi ON o.Order_ID = oi.Order_ID
+WHERE strftime('%Y', o.Order_Date) IN ('2017', '2018')
+GROUP BY strftime('%Y', o.Order_Date)
+ORDER BY year","Based on the sales data from our query on aggregated Order_Items, here's the comparison between 2017 and 2018:
+
+**2017 Total Sales:** $600,193
+- Number of orders: 1,295
+
+**2018 Total Sales:** $722,052
+- Number of orders: 1,661
+
+**Year-over-Year Growth:**
+- **Sales increase:** $121,859 (+20.3%)
+- **Order volume increase:** 366 orders (+28.3%)
+
+The business showed strong growth from 2017 to 2018, with sales increasing by over 20% and order volume growing even faster at 28%. This suggests not only more customers were placing orders, but the business was also expanding its reach successfully.",12.98,No,FAIL,"The agent provided an incorrect total sales figure for 2017 ($600,193 instead of $600,192.55), which constitutes a failure.",PASS
+23,Time-Based,Which month had the most orders?,November 2018 (2018-11) with 259 orders,"SELECT 
+    strftime('%Y-%m', Order_Date) as month,
+    COUNT(*) as order_count
+FROM Orders 
+GROUP BY strftime('%Y-%m', Order_Date)
+ORDER BY order_count DESC
+LIMIT 10","**November 2018** had the most orders with **259 orders**.
+
+Looking at the top months, there's a clear pattern:
+- **November 2018**: 259 orders (highest)
+- **December 2018**: 223 orders 
+- **September 2018**: 222 orders
+
+The data shows that late 2018 was particularly busy, with November, December, and September 2018 being the top three months for order volume. This suggests strong seasonal demand, likely driven by holiday shopping in November and December, plus back-to-school or end-of-quarter purchasing in September.
+
+It's also worth noting that November consistently appears as a high-volume month across different years (2015, 2016, 2017, and 2018 all show November in the top 10), indicating a reliable seasonal pattern.",8.32,Yes,PASS,"The agent's answer correctly identifies November 2018 as the month with the most orders and provides the exact number of 259 orders, matching the expected answer.",
+24,Complex,Which customer segment generates the most revenue in the West region?,"Consumer with $355,241.19","SELECT 
+    c.Segment,
+    SUM(oi.Sales) as Total_Revenue,
+    COUNT(DISTINCT o.Order_ID) as Order_Count,
+    COUNT(DISTINCT c.Customer_ID) as Customer_Count
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Customers c ON o.Customer_ID = c.Customer_ID
+JOIN Locations l ON o.Location_ID = l.Location_ID
+WHERE l.Region = 'West'
+GROUP BY c.Segment
+ORDER BY Total_Revenue DESC","Based on the data from query_database on aggregated Order_Items, the **Consumer segment** generates the most revenue in the West region.
+
+Here's the breakdown by customer segment in the West region:
+
+1. **Consumer**: $355,241 (50.0% of West region revenue)
+   - 811 orders from 354 customers
+   - Average revenue per customer: $1,003
+
+2. **Corporate**: $220,018 (31.0% of West region revenue)
+   - 478 orders from 204 customers  
+   - Average revenue per customer: $1,078
+
+3. **Home Office**: $134,960 (19.0% of West region revenue)
+   - 298 orders from 123 customers
+   - Average revenue per customer: $1,097
+
+The Consumer segment clearly dominates with over $355K in total revenue, generating about 61% more revenue than the Corporate segment. This is primarily driven by having the largest customer base (354 customers vs 204 Corporate and 123 Home Office customers) and the highest order volume (811 orders).
+
+Interestingly, while Consumer generates the most total revenue, the Corporate and Home Office segments actually have slightly higher revenue per customer, suggesting Consumer customers make more frequent but smaller purchases on average.",14.37,Yes,FAIL,The agent's answer provides the correct segment name but the revenue amount is rounded to whole dollars instead of including the exact cents as specified in the expected answer.,PASS
+25,Complex,What is the most popular product category for Corporate customers?,"Technology with $244,041.84","SELECT 
+    p.Category,
+    COUNT(*) as order_count,
+    SUM(oi.Sales) as total_revenue
+FROM Order_Items oi
+JOIN Orders o ON oi.Order_ID = o.Order_ID
+JOIN Customers c ON o.Customer_ID = c.Customer_ID
+JOIN Products p ON oi.Product_Key = p.Product_Key
+WHERE c.Segment = 'Corporate'
+GROUP BY p.Category
+ORDER BY order_count DESC","Based on the data analysis, **Office Supplies** is the most popular product category for Corporate customers.
+
+Here are the results for all categories purchased by Corporate customers:
+
+1. **Office Supplies**: 1,782 orders with $224,131 in total revenue
+2. **Furniture**: 628 orders with $220,322 in total revenue  
+3. **Technology**: 542 orders with $244,042 in total revenue
+
+While Office Supplies has significantly more orders (almost 3x more than Furniture and Technology), it's interesting to note that Technology generates the highest revenue per order, followed closely by Furniture. Office Supplies appears to consist of lower-value, more frequent purchases, which makes it the most popular category by volume for Corporate customers.",7.01,Yes,FAIL,"The agent incorrectly identified 'Office Supplies' as the most popular product category instead of 'Technology', which is the correct answer based on revenue.",Technically fails under assumption user wanted it  based on revenue not order quantity

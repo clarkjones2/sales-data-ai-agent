@@ -1,6 +1,7 @@
 """
 Streamlit Web Interface for AI Database Agent
 """
+import io
 import json
 import os
 from datetime import datetime
@@ -171,26 +172,53 @@ with col1:
             answer = st.session_state.agent.ask(user_question)
             chart_paths = list(st.session_state.agent.last_chart_exports)
 
+            # Grab the data directly from the agent's new memory!
+            last_query_data = st.session_state.agent.last_query_data
+
             st.session_state.conversation.append({
                 'role': 'agent',
                 'content': answer,
                 'timestamp': datetime.now(),
                 'chart_paths': chart_paths,
+                'table_data': last_query_data, # Save data for Excel
             })
     
     # Display conversation
     st.markdown("---")
     st.header("📝 Conversation History")
     
-    for msg in reversed(st.session_state.conversation[-10:]):  # Show last 10
+    for idx, msg in enumerate(reversed(st.session_state.conversation[-10:])):  # Show last 10
         if msg['role'] == 'user':
             st.markdown(f"**You:** {msg['content']}")
         else:
             st.markdown(f"**Agent:** {msg['content']}")
+            
+            # Display charts if they exist
             for chart_path in msg.get('chart_paths') or []:
                 if chart_path and os.path.isfile(chart_path):
                     with open(chart_path, encoding='utf-8') as hf:
                         st.components.v1.html(hf.read(), height=520, scrolling=True)
+            
+            # Excel Download Button logic
+            if msg.get('table_data'):
+                # Convert the list of dicts to a Pandas DataFrame
+                df = pd.DataFrame(msg['table_data'])
+                
+                # Write DataFrame to an in-memory buffer as an Excel file
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Query Results')
+                
+                # Create the Streamlit download button
+                unique_key = f"excel_dl_{msg['timestamp'].strftime('%H%M%S')}_{idx}"
+                st.download_button(
+                    label="📊 Download Table as Excel",
+                    data=buffer.getvalue(),
+                    file_name=f"query_result_{msg['timestamp'].strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key=unique_key
+                )
+                
         st.caption(msg['timestamp'].strftime('%I:%M %p'))
         st.markdown("---")
 

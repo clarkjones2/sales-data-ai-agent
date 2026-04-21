@@ -95,6 +95,7 @@ class DatabaseQAAgent:
         self.conversation_history = []
         self.last_chart_exports: list = []
         self.last_png_exports: list = []
+        self.last_query_data = None  # Track the latest data
 
         # Get database schema for context
         self.schema_context = self._build_schema_context()
@@ -145,6 +146,7 @@ class DatabaseQAAgent:
 
         self.last_chart_exports = []
         self.last_png_exports = []
+        self.last_query_data = None  # Reset data for each new question
 
         # Define tools available to Claude
         tools = [
@@ -292,6 +294,10 @@ Keep your answers conversational and helpful, not overly technical.
                             result = self.db_tool.query_database(
                                 tool_input['sql_query']
                             )
+                            # Capture the raw rows returned by the query
+                            if result.get("success") and result.get("data"):
+                                self.last_query_data = result["data"]
+
                         elif tool_name == "get_table_schema":
                             result = self.db_tool.get_table_schema(
                                 tool_input['table_name']
@@ -327,6 +333,10 @@ Keep your answers conversational and helpful, not overly technical.
                             else:
                                 result = self.db_tool.query_database(sql)
                                 result["saved_report_id"] = rid
+                                # Capture the data if they run a saved report
+                                if result.get("success") and result.get("data"):
+                                    self.last_query_data = result["data"]
+
                         elif tool_name == "estimate_query_rows":
                             result = self.db_tool.estimate_select_row_count(
                                 tool_input["sql_query"]
@@ -370,6 +380,7 @@ Keep your answers conversational and helpful, not overly technical.
         self.conversation_history = []
         self.last_chart_exports = []
         self.last_png_exports = []
+        self.last_query_data = None  # Clear the cache
         print("Conversation reset.\n")
     
     def show_query_log(self):
